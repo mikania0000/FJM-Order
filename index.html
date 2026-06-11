@@ -16,10 +16,13 @@
         
         /* 專屬品牌色系 (皮克敏綠與活潑色彩) */
         :root {
-            --brand-color: #2A874B;     /* 皮克敏葉子綠 */
+            --brand-color: #006241;     /* 星巴克綠 */
             --brand-light: #E8F5E9;     /* 柔和淺綠 */
-            --brand-accent: #FF5722;    /* 活潑亮橘 (按鈕或提示) */
+            --brand-accent: #00875A;    /* 活潑亮綠 */
             --brand-leaf: #81C784;      /* 芽的亮綠 */
+            --pik-red: #E53935;         /* 皮克敏紅 */
+            --pik-yellow: #FBC02D;      /* 皮克敏黃 */
+            --pik-blue: #1E88E5;        /* 皮克敏藍 */
         }
         .bg-brand { background-color: var(--brand-color); }
         .text-brand { color: var(--brand-color); }
@@ -66,6 +69,11 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* 新增：iPhone 底部安全距離 (避免導覽列與系統手勢條重疊) */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important; }
+        }
+
         /* 專屬葉子彈跳動畫 */
         @keyframes sprout-bounce {
             0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -115,15 +123,16 @@
                 <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain" alt="菜單大圖">
             </div>
             <div class="absolute bottom-8 w-full text-center pointer-events-none text-white opacity-80 text-sm tracking-widest font-bold bg-black bg-opacity-20 py-2">
-                雙指縮放・單指拖曳
+                雙指縮放・單指拖曳・滾輪縮放
             </div>
         </div>
 
         <!-- 登入頁面 -->
         <div id="viewLogin" class="p-8 flex flex-col items-center justify-center min-h-screen bg-[#F4F9F4] relative overflow-hidden">
-            <!-- 裝飾背景圖形 -->
-            <div class="absolute top-[-10%] left-[-20%] w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
-            <div class="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-yellow-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+            <!-- 裝飾背景圖形 (皮克敏三原色點綴) -->
+            <div class="absolute top-[-5%] left-[-10%] w-48 h-48 bg-[#E53935] rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+            <div class="absolute bottom-[10%] right-[-10%] w-56 h-56 bg-[#FBC02D] rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+            <div class="absolute top-[20%] right-[10%] w-32 h-32 bg-[#1E88E5] rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
 
             <!-- 皮客覓 LOGO -->
             <div class="w-32 h-32 bg-white rounded-[2rem] flex items-center justify-center shadow-xl mb-6 relative z-10">
@@ -273,6 +282,7 @@
         };
 
         let pzInstance = null; // Panzoom 實例
+        let pzWheelHandler = null; // 新增：儲存滾輪事件處理器，避免重複綁定
 
         // --- UI 工具 ---
         function showLoading(text = '皮克敏奔跑中...') {
@@ -316,6 +326,7 @@
             if(!url) return showAlert('店長尚未上傳菜單圖片。', '查無圖片');
             const lightbox = document.getElementById('lightbox');
             const img = document.getElementById('lightboxImg');
+            const container = document.getElementById('lightboxContainer');
             
             img.src = url;
             lightbox.classList.remove('hidden');
@@ -323,9 +334,15 @@
             setTimeout(() => {
                 if (pzInstance) pzInstance.destroy();
                 pzInstance = Panzoom(img, {
-                    maxScale: 4, minScale: 1, contain: 'outside', step: 0.3
+                    maxScale: 6, minScale: 0.2, contain: 'outside', step: 0.3
                 });
-                img.parentElement.addEventListener('wheel', pzInstance.zoomWithWheel);
+                
+                // 修正：確實移除舊的滾輪事件，再綁定新的，避免錯亂
+                if (pzWheelHandler) {
+                    container.removeEventListener('wheel', pzWheelHandler);
+                }
+                pzWheelHandler = pzInstance.zoomWithWheel;
+                container.addEventListener('wheel', pzWheelHandler);
             }, 100);
         }
         function closeLightbox() {
@@ -861,6 +878,13 @@
         window.executeRemove = function(idx) { closeAlert(); state.cart.splice(idx, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent')); };
 
         async function submitOrder() {
+            // 新增：送出前最後一刻，再次檢查是否超時 (防呆機制)
+            if (checkIsPastDeadline()) {
+                showAlert('已經超過今日點餐截止時間，皮克敏無法為您送出訂單囉！', '喔不！超時了');
+                renderCartTab(document.getElementById('mainContent')); // 重新渲染以鎖定按鈕
+                return;
+            }
+
             showLoading('皮克敏奮力搬運訂單中...');
             const res = await apiCall('submitOrder', state.cart);
             if (res) {
@@ -890,24 +914,28 @@
 
             state.userOrders.forEach(order => {
                 grandTotal += parseInt(order['小計']);
-                const payColor = order['繳費狀態'] === '已繳費' ? 'text-green-700 bg-green-100 border-green-200' : 'text-orange-700 bg-orange-100 border-orange-200';
-                const takeColor = order['取餐狀態'] === '已取餐' ? 'text-blue-700 bg-blue-100 border-blue-200' : 'text-gray-500 bg-gray-100 border-gray-200';
+                const payStatus = order['繳費狀態'] || order['繳費情形'] || '未繳費';
+                const takeStatus = order['取餐狀態'] || order['取餐情形'] || '未取餐';
+                const spec = order['規格'] || order['訂購內容'] || '';
+
+                const payColor = payStatus === '已繳費' ? 'text-green-700 bg-green-100 border-green-200' : 'text-[#E53935] bg-red-50 border-red-200';
+                const takeColor = takeStatus === '已取餐' ? 'text-[#1E88E5] bg-blue-50 border-blue-200' : 'text-gray-500 bg-gray-100 border-gray-200';
                 
                 const canDelete = state.system.isOpen && !checkIsPastDeadline();
                 const deleteBtn = canDelete ? 
-                    `<button onclick="confirmDeleteOrder('${order['訂單編號']}')" class="text-sm text-red-500 border-2 border-red-200 px-4 py-1.5 rounded-full hover:bg-red-50 hover:border-red-400 transition active:scale-95 font-black">取消</button>` : '';
+                    `<button onclick="confirmDeleteOrder('${order['訂單編號']}')" class="text-sm text-[#E53935] border-2 border-red-200 px-4 py-1.5 rounded-full hover:bg-red-50 hover:border-red-400 transition active:scale-95 font-black">取消</button>` : '';
 
                 html += `
                 <div class="card p-5 border border-gray-100">
                     <div class="flex justify-between items-start mb-4">
                         <p class="text-sm font-black text-brand bg-brand-light px-2.5 py-1 rounded-lg">${order['店家']}</p>
                         <div class="flex gap-2">
-                            <span class="text-xs font-black tracking-widest px-2.5 py-1 rounded border ${payColor}">${order['繳費狀態']}</span>
-                            <span class="text-xs font-black tracking-widest px-2.5 py-1 rounded border ${takeColor}">${order['取餐狀態']}</span>
+                            <span class="text-xs font-black tracking-widest px-2.5 py-1 rounded border ${payColor}">${payStatus}</span>
+                            <span class="text-xs font-black tracking-widest px-2.5 py-1 rounded border ${takeColor}">${takeStatus}</span>
                         </div>
                     </div>
                     <h4 class="text-xl font-black text-gray-800 mb-1 leading-tight">${order['品項']}</h4>
-                    <p class="text-gray-500 text-base font-bold leading-snug">${order['規格']}</p>
+                    <p class="text-gray-500 text-base font-bold leading-snug">${spec}</p>
                     <div class="flex justify-between items-end mt-5 pt-4 border-t border-gray-50">
                         <div class="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                             <span class="text-gray-500 font-black text-sm">數量</span>
@@ -1120,7 +1148,10 @@
                     const orderIdsStr = user.orders.map(o=>o['訂單編號']).join(',');
 
                     html += `
-                    <div class="card mb-6 border-2 p-5 ${paidCls} shadow-sm">
+                    <div class="card mb-6 border-2 p-5 ${paidCls} shadow-sm relative overflow-hidden">
+                        <!-- 皮克敏狀態裝飾色塊 -->
+                        <div class="absolute top-0 right-0 w-2 h-full ${user.paid ? 'bg-[#00875A]' : 'bg-[#E53935]'} opacity-80"></div>
+                        
                         <div class="flex justify-between items-center mb-4 pb-4 border-b ${user.paid ? 'border-green-200' : 'border-red-200'}">
                             <span class="text-2xl font-black text-gray-800 tracking-wide">${user.name}</span>
                             <span class="text-3xl font-black text-gray-900">$${user.total}</span>
@@ -1129,16 +1160,16 @@
                         <div class="text-base text-gray-700 mb-5 font-bold leading-relaxed bg-white/70 p-4 rounded-xl border border-gray-100">
                             ${user.orders.map(o => `
                                 <div class="flex justify-between border-b border-gray-100 last:border-0 py-2">
-                                    <span class="truncate pr-2"><span class="text-[10px] text-brand font-black mr-1 bg-brand-light px-1.5 py-0.5 rounded">${o['店家']}</span>${o['品項']}</span>
+                                    <span class="truncate pr-2"><span class="text-[10px] text-white font-black mr-1 bg-brand px-1.5 py-0.5 rounded shadow-sm">${o['店家']}</span>${o['品項']}</span>
                                     <span class="font-black text-gray-900 whitespace-nowrap text-lg">x${o['數量']}</span>
                                 </div>`).join('')}
                         </div>
                         
                         <div class="grid grid-cols-2 gap-3">
-                            <button onclick="updateOrderStatus('${orderIdsStr}', 'pay', '${user.paid ? '未繳費' : '已繳費'}')" class="py-3 rounded-xl shadow-sm text-lg font-black transition active:scale-95 border-2 ${user.paid ? 'bg-white text-gray-400 border-gray-200' : 'bg-red-500 text-white border-red-600 shadow-md'}">
+                            <button onclick="updateOrderStatus('${orderIdsStr}', 'pay', '${user.paid ? '未繳費' : '已繳費'}')" class="py-3 rounded-xl shadow-sm text-lg font-black transition active:scale-95 border-2 ${user.paid ? 'bg-white text-gray-400 border-gray-200' : 'bg-[#E53935] text-white border-red-600 shadow-md'}">
                                 ${user.paid ? '取消已繳' : '確認收錢'}
                             </button>
-                            <button onclick="updateOrderStatus('${orderIdsStr}', 'take', '${user.taken ? '未取餐' : '已取餐'}')" class="py-3 rounded-xl shadow-sm text-lg font-black transition active:scale-95 border-2 ${user.taken ? 'bg-white text-gray-400 border-gray-200' : 'bg-blue-500 text-white border-blue-600 shadow-md'}">
+                            <button onclick="updateOrderStatus('${orderIdsStr}', 'take', '${user.taken ? '未取餐' : '已取餐'}')" class="py-3 rounded-xl shadow-sm text-lg font-black transition active:scale-95 border-2 ${user.taken ? 'bg-white text-gray-400 border-gray-200' : 'bg-[#1E88E5] text-white border-blue-600 shadow-md'}">
                                 ${user.taken ? '取消已取' : '確認發餐'}
                             </button>
                         </div>
