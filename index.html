@@ -6,7 +6,8 @@
     <title>教務處點餐系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <!-- 修正：加入 type="text/tailwindcss" 讓瀏覽器支援 @apply 語法，按鈕 CSS 瞬間復活 -->
+    <style type="text/tailwindcss">
         /* 基礎字體設定：最少 16px 防止手機自動放大縮放 */
         html { font-size: 16px; }
         body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background-color: #F7F7F7; color: #333; }
@@ -71,16 +72,25 @@
 
         <!-- 頁面區域 -->
         <div id="viewLogin" class="p-8 flex flex-col items-center justify-center min-h-screen bg-brand-light">
-            <!-- 尊榮星級 LOGO -->
-            <div class="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-lg mb-6 border-4 border-brand p-4">
+            <!-- 尊榮星級 LOGO (V1.1 加入咖啡與餐盤元素) -->
+            <div class="w-28 h-28 bg-white rounded-full flex items-center justify-center shadow-lg mb-6 border-4 border-brand p-4 relative">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-full h-full text-brand">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                    <!-- 加上一個咖啡杯/餐點的意象 -->
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8m-8 4h8m-4-8v12" opacity="0.3"/>
+                    <!-- 杯子主體 -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 8v8a4 4 0 004 4h4a4 4 0 004-4V8H6z" />
+                    <!-- 杯耳 -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 10h1a2 2 0 012 2v2a2 2 0 01-2 2h-1" />
+                    <!-- 蓋子 -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14v-2a1 1 0 00-1-1H6a1 1 0 00-1 1v2z" />
+                    <!-- 閃亮星星 (星級意象) -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2m-8-10H2m20 0h-2m-2-6l-1.5 1.5M6 18l-1.5 1.5M18 18l1.5 1.5M6 6L4.5 4.5" opacity="0.3" />
                 </svg>
+                <!-- 小餐盤圖示裝飾 -->
+                <div class="absolute -bottom-2 -right-2 bg-white rounded-full p-1.5 shadow border-2 border-brand">
+                    <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h18M5 17h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+                </div>
             </div>
             <h1 class="text-3xl font-extrabold text-brand mb-1 text-center">星級點餐系統</h1>
-            <div class="bg-brand text-white px-3 py-1 rounded-full text-sm font-bold tracking-widest shadow-sm mb-8">V 1.0</div>
+            <div class="bg-brand text-white px-3 py-1 rounded-full text-sm font-bold tracking-widest shadow-sm mb-8">V 1.1</div>
             
             <div class="w-full space-y-5 bg-white p-6 rounded-3xl shadow-md">
                 <div>
@@ -103,12 +113,11 @@
         <div id="viewMain" class="hidden min-h-screen bg-gray-50 flex flex-col">
             <!-- Header -->
             <header class="bg-brand text-white p-5 rounded-b-3xl shadow-md z-10 sticky top-0">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <p class="text-sm opacity-80 font-medium" id="greetingTime">早安，</p>
-                        <h2 class="text-2xl font-bold" id="greetingName">王小明 老師</h2>
+                <div class="flex justify-between items-start">
+                    <div id="greetingText" class="leading-snug">
+                        <!-- 動態雞湯問候語將會在這裡生成 -->
                     </div>
-                    <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition flex items-center justify-center">
+                    <button onclick="logout()" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition flex items-center justify-center mt-1">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     </button>
                 </div>
@@ -322,13 +331,26 @@
             document.getElementById('viewLogin').classList.add('hidden');
             document.getElementById('viewMain').classList.remove('hidden');
             
-            // 設定問候語
+            // 設定心靈雞湯問候語 (V1.1)
             const hour = new Date().getHours();
-            let greeting = '早安';
-            if (hour >= 11 && hour < 17) greeting = '午安';
-            else if (hour >= 17) greeting = '晚安';
-            document.getElementById('greetingTime').innerText = `${greeting}，`;
-            document.getElementById('greetingName').innerText = `${state.user.name} ${state.user.role==='管理'?'店長':'老師'}`;
+            const roleStr = state.user.role === '管理' ? '店長' : '老師';
+            const nameStr = `<span class="text-2xl font-bold">${state.user.name} ${roleStr}</span>`;
+            let greeting = '';
+            
+            if (hour >= 5 && hour < 11) {
+                const msgs = ['美好的一天開始了，來杯咖啡提神吧！', '早安！吃頓豐盛的早餐，迎接活力的一天！', '早安！點份美味餐點，開啟順心的一天！'];
+                greeting = `<p class="text-sm opacity-90 mb-1">早安，</p>${nameStr}<p class="text-sm font-medium text-brand-light mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
+            } else if (hour >= 11 && hour < 14) {
+                const msgs = ['午餐時間到囉！吃飽飽才有力氣繼續奮鬥！', '工作辛苦了，來點美味的午餐犒賞自己吧！', '來個活力滿滿的午餐吧！'];
+                greeting = `<p class="text-sm opacity-90 mb-1">午安，</p>${nameStr}<p class="text-sm font-medium text-brand-light mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
+            } else if (hour >= 14 && hour < 18) {
+                const msgs = ['下午茶時間！點份甜點補充能量吧！', '稍作休息，喝杯飲料轉換一下心情。'];
+                greeting = `<p class="text-sm opacity-90 mb-1">午安，</p>${nameStr}<p class="text-sm font-medium text-brand-light mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
+            } else {
+                const msgs = ['夜深了，來份宵夜暖暖胃吧！', '辛苦了一整天，好好享用豐盛的晚餐吧！'];
+                greeting = `<p class="text-sm opacity-90 mb-1">晚安，</p>${nameStr}<p class="text-sm font-medium text-brand-light mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
+            }
+            document.getElementById('greetingText').innerHTML = greeting;
 
             if (state.user.role === '管理') {
                 document.getElementById('nav-admin').classList.remove('hidden');
