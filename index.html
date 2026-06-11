@@ -6,8 +6,7 @@
     <title>教務處點餐系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 修正：加入 type="text/tailwindcss" 讓瀏覽器支援 @apply 語法，按鈕 CSS 瞬間復活 -->
-    <style type="text/tailwindcss">
+    <style>
         /* 基礎字體設定：最少 16px 防止手機自動放大縮放 */
         html { font-size: 16px; }
         body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background-color: #F7F7F7; color: #333; }
@@ -22,14 +21,47 @@
         .border-brand { border-color: var(--brand-color); }
         .bg-brand-light { background-color: var(--brand-light); }
         
-        /* 元件樣式 */
-        .card { @apply bg-white rounded-2xl shadow-sm p-5 border border-gray-100 transition-all hover:shadow-md; }
-        .btn-primary { @apply bg-brand text-white font-bold py-3 px-6 rounded-full shadow hover:bg-green-800 transition active:scale-95 text-lg w-full; }
-        .btn-secondary { @apply bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-full shadow hover:bg-gray-300 transition active:scale-95 text-lg w-full; }
-        .btn-outline { @apply border-2 border-brand text-brand font-bold py-2 px-4 rounded-full hover:bg-brand hover:text-white transition active:scale-95; }
+        /* 元件樣式改為純 CSS，徹底解決 Tailwind CDN 解析崩潰的問題 */
+        .card { 
+            background-color: white; border-radius: 1rem; padding: 1.25rem; 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); border: 1px solid #f3f4f6; 
+            transition: all 0.3s ease; 
+        }
+        .card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        .btn-primary { 
+            background-color: var(--brand-color); color: white; font-weight: bold; 
+            padding: 0.75rem 1.5rem; border-radius: 9999px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); 
+            transition: all 0.2s; font-size: 1.125rem; width: 100%; display: block; text-align: center; border: none; cursor: pointer;
+        }
+        .btn-primary:hover { background-color: #004d33; }
+        .btn-primary:active { transform: scale(0.95); }
+        
+        .btn-secondary { 
+            background-color: #e5e7eb; color: #374151; font-weight: bold; 
+            padding: 0.75rem 1.5rem; border-radius: 9999px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); 
+            transition: all 0.2s; font-size: 1.125rem; width: 100%; border: none; cursor: pointer;
+        }
+        .btn-secondary:hover { background-color: #d1d5db; }
+        .btn-secondary:active { transform: scale(0.95); }
+        
+        .btn-outline { 
+            background-color: transparent; border: 2px solid var(--brand-color); color: var(--brand-color); 
+            font-weight: bold; padding: 0.75rem 1.5rem; border-radius: 9999px; 
+            transition: all 0.2s; cursor: pointer; width: 100%;
+        }
+        .btn-outline:hover { background-color: var(--brand-color); color: white; }
+        .btn-outline:active { transform: scale(0.95); }
         
         /* 輸入框強制 16px 以上，避免 iOS Safari 縮放 */
-        input, select, textarea { font-size: 16px !important; @apply rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring focus:ring-green-200 focus:ring-opacity-50 p-3; }
+        input, select, textarea { 
+            font-size: 16px !important; border-radius: 0.75rem; border: 1px solid #d1d5db; 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); padding: 0.75rem; width: 100%; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus, textarea:focus { 
+            border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); 
+        }
 
         /* 動畫過渡 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
