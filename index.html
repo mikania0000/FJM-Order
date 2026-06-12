@@ -27,11 +27,9 @@
         .sparkle-2 { animation: float-sparkle 2.5s infinite ease-in-out 0.5s; }
         .sparkle-3 { animation: float-sparkle 1.8s infinite ease-in-out 1s; }
 
-        /* --- 🌟 星巴克質感配色系統 --- */
         .theme-green { background-color: #006241; }
         .theme-text { color: #006241; }
         .theme-light { background-color: #e8f3ee; }
-        .theme-border { border-color: #006241; }
         
         /* 隱藏 details 預設箭頭 */
         details > summary { list-style: none; }
@@ -40,7 +38,8 @@
 </head>
 <body class="text-slate-800 antialiased overflow-hidden flex flex-col h-screen">
 
-    <div id="alertBox" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+    <!-- 提示框 -->
+    <div id="alertBox" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full theme-light theme-text flex items-center justify-center shrink-0">
@@ -52,6 +51,23 @@
             <button onclick="closeAlert()" class="w-full theme-green text-white font-bold py-4 rounded-xl hover:bg-emerald-800 active:scale-95 transition-all text-lg">
                 確定，探險家！
             </button>
+        </div>
+    </div>
+
+    <!-- 確認框 (取代原生的 confirm) -->
+    <div id="confirmBox" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800">重大操作確認</h3>
+            </div>
+            <p id="confirmMessage" class="text-lg text-slate-600 mb-6 leading-relaxed"></p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm(false)" class="flex-1 bg-slate-100 text-slate-600 font-bold py-4 rounded-xl active:scale-95 transition-all text-lg">取消</button>
+                <button onclick="closeConfirm(true)" class="flex-1 bg-red-500 text-white font-bold py-4 rounded-xl hover:bg-red-600 active:scale-95 transition-all text-lg">確定執行</button>
+            </div>
         </div>
     </div>
 
@@ -73,11 +89,10 @@
         </div>
     </div>
 
-    <!-- === 🌟 登入頁面 (含精緻 Logo) === -->
+    <!-- 登入頁面 -->
     <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-6 transition-transform duration-500">
         <div class="w-full max-w-md">
             <div class="flex flex-col items-center mb-10">
-                <!-- 精緻版盆栽 Logo -->
                 <div class="w-32 h-32 theme-green rounded-[2.5rem] shadow-xl flex flex-col items-center justify-center relative mb-5">
                     <svg class="absolute top-4 right-4 w-10 h-10 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                     <svg class="absolute top-2 left-6 w-5 h-5 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
@@ -87,7 +102,6 @@
                         <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
                     </div>
                 </div>
-                <!-- 標題 -->
                 <h1 class="text-5xl font-black text-slate-800 tracking-wider">皮客覓</h1>
                 <p class="text-base font-bold theme-text tracking-[0.3em] mt-2 uppercase">PickMeal</p>
                 <p class="text-base text-slate-500 mt-3 font-medium">探險家，準備好出發採集物資了嗎？</p>
@@ -115,7 +129,7 @@
         </div>
     </div>
 
-    <!-- === 主應用程式 === -->
+    <!-- 主應用程式 -->
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
@@ -191,7 +205,7 @@
             system: { isOpen: false, openedShops: [], deadline: '' },
             data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, userOrders: [], popularityCache: {} },
             cart: [], currentTab: 'menu', activeShop: '',
-            tempItem: null, adminProxyName: '' 
+            tempItem: null, adminProxyName: '', sortByPop: false // 排序開關
         };
 
         let pzInstance = null; let pzWheelHandler = null;
@@ -225,6 +239,27 @@
             el.classList.add('opacity-0');
             el.querySelector('div').classList.add('scale-95');
             setTimeout(() => el.classList.add('hidden'), 300);
+        }
+
+        let confirmCallback = null;
+        function showConfirm(msg, callback) {
+            document.getElementById('confirmMessage').textContent = msg;
+            confirmCallback = callback;
+            const el = document.getElementById('confirmBox');
+            el.classList.remove('hidden');
+            setTimeout(() => {
+                el.classList.remove('opacity-0');
+                el.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+        function closeConfirm(result) {
+            const el = document.getElementById('confirmBox');
+            el.classList.add('opacity-0');
+            el.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                el.classList.add('hidden');
+                if (result && confirmCallback) confirmCallback();
+            }, 300);
         }
 
         async function apiCall(action, data = {}) {
@@ -334,9 +369,6 @@
             lucide.createIcons();
         }
 
-        // ==========================================
-        // 探索菜單 (星巴克配色版)
-        // ==========================================
         function renderMenuTab(container) {
             if (!state.system.isOpen) {
                 container.innerHTML = `
@@ -398,73 +430,119 @@
                 html += `</div>`;
             }
 
+            // 新增：排序切換開關
+            html += `
+            <div class="flex justify-between items-center px-2 mb-2 mt-4 border-t border-slate-200 pt-4">
+                <span class="text-base font-bold text-slate-500">選擇美味</span>
+                <label class="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                    <span class="text-sm font-bold ${state.sortByPop ? 'text-red-500' : 'text-slate-400'}"><i data-lucide="flame" class="w-4 h-4 inline pb-0.5"></i> 人氣熱銷排序</span>
+                    <div class="relative inline-flex items-center">
+                        <input type="checkbox" class="sr-only peer" onchange="state.sortByPop = this.checked; renderMenuTab(document.getElementById('mainContent'));" ${state.sortByPop ? 'checked' : ''}>
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                    </div>
+                </label>
+            </div>`;
+
             const menu = state.data.menuData[state.activeShop] || [];
-            let groupedMenu = {};
             
+            // 預先處理菜單資料
+            let processedItems = [];
             menu.forEach((item, index) => {
                 if (!item['品項']) return;
-                const category = item['類別'] || '其他美味';
-                if (!groupedMenu[category]) groupedMenu[category] = [];
-                item._originalRawIndex = index; 
-                groupedMenu[category].push(item);
+                let basePrice = 0;
+                let priceLabels = [];
+                for (let key in item) {
+                    if (key === '_originalIndex' || key === '類別' || key === '品項' || key === '_originalRawIndex') continue;
+                    if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
+                        const p = parseInt(item[key]);
+                        if (!isNaN(p) && p > 0) {
+                            priceLabels.push({ label: key, price: p });
+                            if (basePrice === 0) basePrice = p;
+                        }
+                    }
+                }
+                
+                if (basePrice > 0) {
+                    const pop = state.data.popularityCache && state.data.popularityCache[item['品項']] ? parseInt(state.data.popularityCache[item['品項']]) : 0;
+                    processedItems.push({
+                        rawItem: item,
+                        rawIndex: item._originalRawIndex !== undefined ? item._originalRawIndex : index,
+                        category: item['類別'] || '其他美味',
+                        basePrice: basePrice,
+                        priceLabels: priceLabels,
+                        pop: pop
+                    });
+                }
             });
 
-            let catIndex = 0;
-            for (let cat in groupedMenu) {
-                const isOpen = catIndex === 0 ? 'open' : ''; 
+            if (state.sortByPop) {
+                // 人氣排序模式 (從高到低)
+                processedItems.sort((a, b) => b.pop - a.pop);
                 
                 html += `
-                <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-slate-100 overflow-hidden" ${isOpen}>
-                    <summary class="px-5 py-5 font-black text-xl text-slate-700 cursor-pointer flex justify-between items-center bg-slate-50 group-open:bg-[#006241] group-open:text-white transition-colors">
-                        ${cat}
+                <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-red-100 overflow-hidden" open>
+                    <summary class="px-5 py-5 font-black text-xl text-red-700 cursor-pointer flex justify-between items-center bg-red-50 group-open:bg-red-500 group-open:text-white transition-colors">
+                        <span class="flex items-center gap-2"><i data-lucide="flame" class="w-6 h-6"></i> 人氣排行榜</span>
                         <i data-lucide="chevron-down" class="w-7 h-7 transition-transform group-open:rotate-180"></i>
                     </summary>
                     <div class="divide-y divide-slate-50 bg-white">
                 `;
-
-                groupedMenu[cat].forEach(item => {
-                    let basePrice = 0;
-                    let priceLabels = [];
-                    for (let key in item) {
-                        if (key === '_originalIndex' || key === '類別' || key === '品項' || key === '_originalRawIndex') continue;
-                        if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
-                            const p = parseInt(item[key]);
-                            if (!isNaN(p) && p > 0) {
-                                priceLabels.push({ label: key, price: p });
-                                if (basePrice === 0) basePrice = p;
-                            }
-                        }
-                    }
-
-                    // 讀取人氣值
-                    const pop = state.data.popularityCache && state.data.popularityCache[item['品項']] ? state.data.popularityCache[item['品項']] : 0;
-
-                    if (basePrice > 0) {
-                        html += `
-                        <div onclick="openItemModal(${item._originalRawIndex})" class="px-5 py-5 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors gap-3">
-                            <div class="flex-1 min-w-0 pr-2">
-                                <h4 class="font-bold text-slate-800 text-[19px] leading-snug mb-1 break-words">
-                                    ${item['品項']}
-                                    ${pop > 0 ? `<span class="inline-flex items-center gap-1 text-sm font-bold text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full ml-1 align-middle whitespace-nowrap"><i data-lucide="flame" class="w-4 h-4"></i>${pop}</span>` : ''}
-                                </h4>
-                                ${priceLabels.length > 1 ? `<p class="text-base text-slate-400 mt-1">多種規格可選</p>` : ''}
-                            </div>
-                            <div class="flex items-center gap-3 shrink-0">
-                                <span class="font-black theme-text text-2xl tracking-tight">$${basePrice}</span>
-                                <div class="w-12 h-12 rounded-full theme-light flex items-center justify-center shrink-0">
-                                    <i data-lucide="plus" class="w-6 h-6 theme-text"></i>
-                                </div>
-                            </div>
-                        </div>`;
-                    }
+                processedItems.forEach(pItem => {
+                    html += renderMenuItemRow(pItem);
+                });
+                html += `</div></details>`;
+            } else {
+                // 預設類別群組模式
+                let groupedMenu = {};
+                processedItems.forEach(pItem => {
+                    if (!groupedMenu[pItem.category]) groupedMenu[pItem.category] = [];
+                    groupedMenu[pItem.category].push(pItem);
                 });
 
-                html += `</div></details>`;
-                catIndex++;
+                let catIndex = 0;
+                for (let cat in groupedMenu) {
+                    const isOpen = catIndex === 0 ? 'open' : ''; 
+                    
+                    html += `
+                    <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-slate-100 overflow-hidden" ${isOpen}>
+                        <summary class="px-5 py-5 font-black text-xl text-slate-700 cursor-pointer flex justify-between items-center bg-slate-50 group-open:bg-[#006241] group-open:text-white transition-colors">
+                            ${cat}
+                            <i data-lucide="chevron-down" class="w-7 h-7 transition-transform group-open:rotate-180"></i>
+                        </summary>
+                        <div class="divide-y divide-slate-50 bg-white">
+                    `;
+
+                    groupedMenu[cat].forEach(pItem => {
+                        html += renderMenuItemRow(pItem);
+                    });
+
+                    html += `</div></details>`;
+                    catIndex++;
+                }
             }
             
             html += `</div>`;
             container.innerHTML = html;
+        }
+
+        // 獨立出渲染單一品項的函式
+        function renderMenuItemRow(pItem) {
+            return `
+            <div onclick="openItemModal(${pItem.rawIndex})" class="px-5 py-5 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors gap-3">
+                <div class="flex-1 min-w-0 pr-2">
+                    <h4 class="font-bold text-slate-800 text-[19px] leading-snug mb-1 break-words">
+                        ${pItem.rawItem['品項']}
+                        ${pItem.pop > 0 ? `<span class="inline-flex items-center gap-1 text-sm font-bold text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full ml-1 align-middle whitespace-nowrap"><i data-lucide="flame" class="w-4 h-4"></i>${pItem.pop}</span>` : ''}
+                    </h4>
+                    ${pItem.priceLabels.length > 1 ? `<p class="text-base text-slate-400 mt-1">多種規格可選</p>` : ''}
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <span class="font-black theme-text text-2xl tracking-tight">$${pItem.basePrice}</span>
+                    <div class="w-12 h-12 rounded-full theme-light flex items-center justify-center shrink-0">
+                        <i data-lucide="plus" class="w-6 h-6 theme-text"></i>
+                    </div>
+                </div>
+            </div>`;
         }
 
         function openItemModal(itemIndex) {
@@ -495,7 +573,7 @@
                         
                         optionsHtml += `
                         <div class="mb-6">
-                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 theme-border pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
+                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 border-[#006241] pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
                             <div class="flex flex-wrap gap-3">
                                 <label class="relative cursor-pointer">
                                     <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
@@ -740,7 +818,7 @@
                                         </div>
                                     </div>
                                     ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? 
-                                        `<button onclick="deleteOrder('${order['訂單編號']}')" class="absolute top-3 right-4 text-slate-300 hover:text-red-500 bg-slate-50 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>` : ''}
+                                        `<button onclick="showConfirm('確定要取消這筆物資派遣嗎？', () => deleteOrder('${order['訂單編號']}'))" class="absolute top-3 right-4 text-slate-300 hover:text-red-500 bg-slate-50 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>` : ''}
                                 </div>
                             `).join('')}
                         </div>`
@@ -928,7 +1006,6 @@
 
         function renderAdminSettings() {
             let contentHtml = `
-            <!-- 🌟 新功能：新增店家 (從 Excel 貼上) -->
             <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
                 <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
                 <div class="space-y-4">
@@ -975,7 +1052,15 @@
                 <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
             </div>
 
-            <!-- 保留原本的更新店家資訊區塊 -->
+            <!-- 人氣數據匯入 -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-amber-500 pl-3">人氣排行榜引擎</h3>
+                <p class="text-base text-slate-500 mb-5 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
+                <button onclick="adminUpdatePopularity()" class="w-full bg-amber-50 text-amber-600 border-2 border-amber-200 text-lg font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="flame" class="w-6 h-6"></i> 立即匯入歷史人氣數據
+                </button>
+            </div>
+
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-lg font-bold text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">更新現有店家資訊</h3>
                 <div class="space-y-4">
@@ -1005,7 +1090,12 @@
             lucide.createIcons();
         }
 
-        // 新增店家邏輯 (處理 Excel 貼上的資料)
+        async function adminUpdatePopularity() {
+            showLoading('正在掃描歷史紀錄計算人氣...');
+            const res = await apiCall('adminUpdatePopularity');
+            if (res) { showAlert(res); loadInitialData(); }
+        }
+
         async function addNewShop() {
             const shop = document.getElementById('newShopName').value.trim();
             const rawData = document.getElementById('newShopMenuData').value.trim();
@@ -1015,7 +1105,6 @@
             if (!shop) return showAlert('請輸入新店家的名稱！');
             if (!rawData) return showAlert('請在對應欄位貼上從 Excel 複製的菜單資料！');
 
-            // 解析從 Excel 複製來的資料 (通常是 Tab 分隔的字串)
             const rows = rawData.split('\n');
             const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
 
@@ -1023,7 +1112,7 @@
             const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone });
             if (res) {
                 showAlert(res);
-                loadInitialData(); // 重新載入以顯示新店家
+                loadInitialData(); 
             }
         }
 
@@ -1051,11 +1140,12 @@
             if (res) { showAlert(res); loadInitialData(); }
         }
 
-        async function adminCloseAndArchive() {
-            if (!confirm('確定要執行日落打烊嗎？這將會把今日紀錄封存並關閉點餐。')) return;
-            showLoading('皮客覓正在封存物資紀錄...');
-            const res = await apiCall('adminCloseAndArchive');
-            if (res) { showAlert(res); loadInitialData(); }
+        function adminCloseAndArchive() {
+            showConfirm('確定要執行日落打烊嗎？這將會把今日紀錄封存並關閉點餐。', async () => {
+                showLoading('皮客覓正在封存物資紀錄...');
+                const res = await apiCall('adminCloseAndArchive');
+                if (res) { showAlert(res); loadInitialData(); }
+            });
         }
 
         function openLightbox(url) {
