@@ -20,6 +20,20 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* 菜單收合動畫 */
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.expanded {
+            max-height: 2000px; /* 隨意給個夠大的值 */
+            opacity: 1;
+        }
+        .accordion-icon { transition: transform 0.3s ease; }
+        .accordion-icon.expanded { transform: rotate(180deg); }
+
         /* 盆栽與小芽動畫 */
         @keyframes sprout-grow {
             0% { transform: translateY(10px) scale(0.5); opacity: 0; }
@@ -135,18 +149,22 @@
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         
         <!-- 頂部導航 -->
-        <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
-            <div class="flex items-center gap-2">
-                <i data-lucide="sprout" class="w-6 h-6 theme-text"></i>
-                <div>
-                    <h1 class="text-lg font-black text-slate-800 leading-tight">皮客覓</h1>
-                    <p class="text-[10px] theme-text font-bold tracking-widest leading-none">PICKMEAL</p>
+        <header class="bg-white px-5 py-4 shadow-sm z-20 flex flex-col sticky top-0">
+            <div class="flex justify-between items-center mb-1">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="sprout" class="w-7 h-7 theme-text"></i>
+                    <div>
+                        <h1 class="text-xl font-black text-slate-800 leading-tight">皮客覓</h1>
+                        <p class="text-[11px] theme-text font-bold tracking-widest leading-none">PICKMEAL</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-base font-bold text-slate-700" id="userGreeting">探險家</div>
+                    <div class="text-xs text-slate-500 font-medium" id="appDeadline">截止時間: 載入中</div>
                 </div>
             </div>
-            <div class="text-right">
-                <div class="text-sm font-bold text-slate-700" id="userGreeting">探險家</div>
-                <div class="text-[10px] text-slate-500" id="appDeadline">截止時間: 載入中</div>
-            </div>
+            <!-- 加回問候打氣語 -->
+            <p class="text-sm text-slate-500 font-medium mt-1">探險家，今天想尋覓什麼美味的物資呢？🌱</p>
         </header>
 
         <!-- 主要內容區 -->
@@ -204,7 +222,7 @@
         // 系統設定區
         // ==========================================
         // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式網址
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
+        const SCRIPT_URL = ''; 
         
         const state = {
             user: null, token: null,
@@ -436,58 +454,106 @@
                 html += `</div>`;
             }
 
-            // 智慧渲染菜單列表
+            // 智慧渲染菜單列表 (加入手風琴邏輯)
             const menu = state.data.menuData[state.activeShop] || [];
-            let currentCategory = '';
             
-            html += `<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden pb-4">`;
+            // 重新組織資料結構：以「類別」分群
+            const categorizedMenu = {};
+            let lastCategory = '未分類';
             
             menu.forEach((item, index) => {
-                // 忽略無效資料
                 if (!item['品項']) return;
-
-                // 類別標題
-                if (item['類別'] && item['類別'] !== currentCategory) {
-                    currentCategory = item['類別'];
-                    html += `
-                    <div class="bg-slate-50 px-5 py-3 mt-2 mb-1 flex items-center gap-2 border-l-4 border-[#006241]">
-                        <span class="font-black text-slate-700">${currentCategory}</span>
-                    </div>`;
+                
+                let cat = item['類別'];
+                // 處理合併儲存格導致類別空白的情況
+                if (cat) {
+                    lastCategory = cat;
+                } else {
+                    cat = lastCategory;
                 }
 
-                // 智慧解析價格 (找出所有可能的價格欄位)
-                let basePrice = 0;
-                let priceLabels = [];
-                for (let key in item) {
-                    if (key === '_originalIndex' || key === '類別' || key === '品項') continue;
-                    // 如果欄位名稱包含價格、單價，或是單純是 L/M/瓶，就認定為價格欄位
-                    if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
-                        const p = parseInt(item[key]);
-                        if (!isNaN(p) && p > 0) {
-                            priceLabels.push({ label: key, price: p });
-                            if (basePrice === 0) basePrice = p; // 抓第一個當作預設顯示價格
+                if (!categorizedMenu[cat]) categorizedMenu[cat] = [];
+                // 將原始 index 存入，方便點擊時抓取正確資料
+                item._realIndex = index; 
+                categorizedMenu[cat].push(item);
+            });
+
+            html += `<div class="pb-4 space-y-3">`;
+            
+            let isFirstCategory = true;
+
+            // 渲染分類手風琴
+            for (let category in categorizedMenu) {
+                const items = categorizedMenu[category];
+                if(items.length === 0) continue;
+
+                const isExpanded = isFirstCategory; // 預設只展開第一個
+                
+                html += `
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <!-- 類別標題 (點擊展開/收合) -->
+                    <button onclick="toggleAccordion('${category.replace(/\s+/g, '-')}')" class="w-full bg-slate-50/80 px-5 py-4 flex items-center justify-between border-l-4 border-[#006241] transition-colors hover:bg-slate-100 active:bg-slate-200">
+                        <span class="font-black text-slate-800 text-lg">${category}</span>
+                        <i data-lucide="chevron-down" id="icon-${category.replace(/\s+/g, '-')}" class="w-6 h-6 text-slate-400 accordion-icon ${isExpanded ? 'expanded' : ''}"></i>
+                    </button>
+                    
+                    <!-- 該類別下的餐點列表 -->
+                    <div id="content-${category.replace(/\s+/g, '-')}" class="accordion-content ${isExpanded ? 'expanded' : ''}">
+                        <div class="flex flex-col">`;
+                
+                items.forEach((item) => {
+                    // 解析價格
+                    let basePrice = 0;
+                    let priceLabels = [];
+                    for (let key in item) {
+                        if (key === '_originalIndex' || key === '類別' || key === '品項' || key === '_realIndex') continue;
+                        if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
+                            const p = parseInt(item[key]);
+                            if (!isNaN(p) && p > 0) {
+                                priceLabels.push({ label: key, price: p });
+                                if (basePrice === 0) basePrice = p;
+                            }
                         }
                     }
-                }
 
-                if (basePrice > 0) {
-                    html += `
-                    <div onclick="openItemModal(${index})" class="px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors">
-                        <div class="pr-4">
-                            <h4 class="font-bold text-slate-800 text-[15px] leading-tight mb-1">${item['品項']}</h4>
-                            ${priceLabels.length > 1 ? `<p class="text-xs text-slate-400">多種規格可選</p>` : ''}
-                        </div>
-                        <div class="flex items-center gap-3 shrink-0">
-                            <span class="font-bold theme-text text-lg tracking-tight">$${basePrice}</span>
-                            <div class="w-8 h-8 rounded-full theme-light flex items-center justify-center">
-                                <i data-lucide="plus" class="w-4 h-4 theme-text"></i>
+                    if (basePrice > 0) {
+                        html += `
+                        <div onclick="openItemModal(${item._realIndex})" class="px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors">
+                            <div class="pr-4 flex-1">
+                                <h4 class="font-bold text-slate-800 text-[17px] leading-tight mb-1">${item['品項']}</h4>
+                                ${priceLabels.length > 1 ? `<p class="text-sm text-slate-500 font-medium">多種規格可選</p>` : ''}
                             </div>
-                        </div>
-                    </div>`;
-                }
-            });
+                            <div class="flex items-center gap-3 shrink-0">
+                                <span class="font-black theme-text text-xl tracking-tight">$${basePrice}</span>
+                                <div class="w-9 h-9 rounded-full theme-light flex items-center justify-center shrink-0">
+                                    <i data-lucide="plus" class="w-5 h-5 theme-text"></i>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+                });
+
+                html += `       </div>
+                            </div>
+                        </div>`;
+                isFirstCategory = false; // 之後的分類預設都收合
+            }
+            
             html += `</div></div>`;
             container.innerHTML = html;
+        }
+
+        // 手風琴切換邏輯
+        function toggleAccordion(categoryId) {
+            const content = document.getElementById(`content-${categoryId}`);
+            const icon = document.getElementById(`icon-${categoryId}`);
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                content.classList.add('expanded');
+                icon.classList.add('expanded');
+            }
         }
 
         // ==========================================
@@ -876,48 +942,73 @@
                     const isAllDone = user.paid && user.taken;
                     html += `
                     <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-5 mb-4 relative overflow-hidden transition-colors">
-                        ${isAllDone ? `<div class="absolute top-0 right-0 w-16 h-16 bg-emerald-100 rounded-bl-full flex items-start justify-end p-3"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i></div>` : ''}
-                        
-                        <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-3">
-                            <h3 class="text-xl font-black text-slate-800">${user.name}</h3>
-                            <div class="text-right">
-                                <p class="text-[10px] text-slate-400 font-bold mb-0.5">應收總計</p>
-                                <p class="text-2xl font-black theme-text leading-none">$${user.total}</p>
-                            </div>
+                    ${isAllDone ? `<div class="absolute top-0 right-0 w-16 h-16 bg-emerald-100 rounded-bl-full flex items-start justify-end p-3"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i></div>` : ''}
+                    
+                    <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-3">
+                        <h3 class="text-2xl font-black text-slate-800">${user.name}</h3>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500 font-bold mb-0.5">應收總計</p>
+                            <p class="text-3xl font-black theme-text leading-none">$${user.total}</p>
                         </div>
-                        
-                        <div class="space-y-4">`;
+                    </div>
+                    
+                    <div class="space-y-4 mb-4">`;
 
-                    user.orders.forEach(order => {
-                        const oId = order['訂單編號'];
-                        const isPaid = (order['繳費狀態'] || order['繳費情形']) === '已繳費';
-                        const isTaken = (order['取餐狀態'] || order['取餐情形']) === '已取餐';
-                        
-                        html += `
-                            <div class="flex flex-col gap-2 p-3 bg-slate-50 rounded-2xl">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <span class="text-[10px] font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded mr-1">${order['店家']}</span>
-                                        <span class="font-bold text-slate-700 text-sm">${order['品項']} x${order['數量']}</span>
-                                        ${order['規格']||order['訂購內容'] ? `<p class="text-xs text-slate-500 mt-0.5">${order['規格']||order['訂購內容']}</p>` : ''}
-                                    </div>
-                                    <span class="font-bold text-slate-700">$${order['小計']}</span>
+                // 收集這個人的所有未繳費/未取餐的 Order ID，供一鍵更新使用
+                const unpaidIds = [];
+                const untakenIds = [];
+
+                user.orders.forEach(order => {
+                    const oId = order['訂單編號'];
+                    const isPaid = (order['繳費狀態'] || order['繳費情形']) === '已繳費';
+                    const isTaken = (order['取餐狀態'] || order['取餐情形']) === '已取餐';
+                    
+                    if(!isPaid) unpaidIds.push(oId);
+                    if(!isTaken) untakenIds.push(oId);
+                    
+                    html += `
+                        <div class="flex flex-col gap-2 p-3 bg-slate-50 rounded-2xl">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-[11px] font-bold text-white bg-slate-800 px-2 py-0.5 rounded mr-1">${order['店家']}</span>
+                                    <span class="font-bold text-slate-800 text-base">${order['品項']} <span class="text-slate-500 font-medium">x${order['數量']}</span></span>
+                                    ${order['規格']||order['訂購內容'] ? `<p class="text-sm text-slate-500 mt-1">${order['規格']||order['訂購內容']}</p>` : ''}
                                 </div>
-                                <div class="flex gap-2 mt-1">
-                                    <button onclick="adminQuickUpdate('${oId}', 'pay', '${isPaid ? '未繳費' : '已繳費'}', this)" 
-                                        class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${isPaid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">
-                                        <i data-lucide="dollar-sign" class="w-3 h-3"></i> ${isPaid ? '已收錢' : '收錢'}
-                                    </button>
-                                    <button onclick="adminQuickUpdate('${oId}', 'take', '${isTaken ? '未取餐' : '已取餐'}', this)" 
-                                        class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${isTaken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">
-                                        <i data-lucide="coffee" class="w-3 h-3"></i> ${isTaken ? '已給餐' : '給餐'}
-                                    </button>
-                                </div>
-                            </div>`;
-                    });
-                    html += `</div></div>`;
+                                <span class="font-black text-slate-800 text-lg">$${order['小計']}</span>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <span class="flex-1 py-1 text-center rounded-lg text-xs font-bold ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-400'}">
+                                    ${isPaid ? '✓ 已繳錢' : '未繳錢'}
+                                </span>
+                                <span class="flex-1 py-1 text-center rounded-lg text-xs font-bold ${isTaken ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-400'}">
+                                    ${isTaken ? '✓ 已取餐' : '未取餐'}
+                                </span>
+                            </div>
+                        </div>`;
                 });
-            }
+                
+                html += `</div>`;
+
+                // 一鍵操作按鈕區 (只要有未完成的才顯示對應按鈕)
+                if (unpaidIds.length > 0 || untakenIds.length > 0) {
+                    html += `<div class="flex gap-3 pt-3 border-t border-slate-100">`;
+                    if (unpaidIds.length > 0) {
+                        html += `
+                        <button onclick="adminQuickUpdate('${unpaidIds.join(',')}', 'pay', '已繳費', this)" class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white py-3 rounded-xl text-base font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                            <i data-lucide="dollar-sign" class="w-5 h-5"></i> 點收 $${user.total}
+                        </button>`;
+                    }
+                    if (untakenIds.length > 0) {
+                        html += `
+                        <button onclick="adminQuickUpdate('${untakenIds.join(',')}', 'take', '已取餐', this)" class="flex-1 bg-blue-500 hover:bg-blue-600 active:scale-95 text-white py-3 rounded-xl text-base font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                            <i data-lucide="coffee" class="w-5 h-5"></i> 發給全餐點
+                        </button>`;
+                    }
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+            });
 
             html += `</div>`;
             container.innerHTML = html;
@@ -1009,48 +1100,67 @@
         // ==========================================
         function renderAdminSettings() {
             const container = document.getElementById('mainContent');
+            
+            // 生成店家 Checkbox
+            let shopCheckboxesHtml = '';
+            state.data.allShops.forEach(shop => {
+                const isChecked = state.system.openedShops.includes(shop);
+                shopCheckboxesHtml += `
+                <label class="flex items-center p-3 bg-white border ${isChecked ? 'border-[#006241] bg-emerald-50/30' : 'border-slate-200'} rounded-xl cursor-pointer transition-colors active:scale-95">
+                    <input type="checkbox" value="${shop}" class="shop-checkbox w-5 h-5 text-[#006241] bg-slate-100 border-slate-300 rounded focus:ring-[#006241] focus:ring-2" ${isChecked ? 'checked' : ''} onchange="this.parentElement.classList.toggle('border-[#006241]'); this.parentElement.classList.toggle('bg-emerald-50/30');">
+                    <span class="ml-3 text-base font-bold text-slate-700">${shop}</span>
+                </label>
+                `;
+            });
+
             let html = `
             <div class="p-4 pb-safe bg-slate-50 min-h-full">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="switchTab('profile')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-                    <h2 class="text-xl font-black text-slate-800">基地系統設定</h2>
+                    <h2 class="text-2xl font-black text-slate-800">基地系統設定</h2>
                 </div>
 
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-5">
-                    <h3 class="font-bold text-slate-800 mb-4 border-l-4 border-[#006241] pl-2">營運開關</h3>
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-sm font-bold text-slate-600">開放點餐</span>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4 border-l-4 border-[#006241] pl-3">營運開關</h3>
+                    
+                    <div class="flex items-center justify-between mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <span class="text-base font-bold text-slate-700">開放點餐</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="setIsOpen" class="sr-only peer" ${state.system.isOpen ? 'checked' : ''}>
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006241]"></div>
+                            <div class="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#006241]"></div>
                         </label>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-xs font-bold text-slate-500 mb-1">今日開放店家 (多間用逗號隔開)</label>
-                        <input type="text" id="setOpenedShops" value="${state.system.openedShops.join(',')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-slate-600 mb-2">今日開放店家 (請勾選)</label>
+                        <div class="grid grid-cols-2 gap-3" id="shopsCheckboxGroup">
+                            ${shopCheckboxesHtml}
+                        </div>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-xs font-bold text-slate-500 mb-1">點餐截止時間 (例如: 10:30)</label>
-                        <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-slate-600 mb-2">點餐截止時間 (例如: 10:30)</label>
+                        <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base font-bold focus:ring-2 focus:ring-[#006241] outline-none">
                     </div>
-                    <button onclick="saveSystemSettings()" class="w-full theme-green text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">儲存系統設定</button>
+                    
+                    <button onclick="saveSystemSettings()" class="w-full theme-green text-white font-bold py-4 rounded-xl text-lg active:scale-95 transition-transform shadow-md">儲存系統設定</button>
                 </div>
 
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-5">
-                    <h3 class="font-bold text-slate-800 mb-4 border-l-4 border-[#006241] pl-2">更新店家資訊</h3>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-4 border-l-4 border-[#006241] pl-3">更新店家資訊</h3>
                     <div class="space-y-4">
-                        <select id="updateShopName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                        <select id="updateShopName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base font-bold focus:ring-2 focus:ring-[#006241] outline-none">
                             <option value="">-- 選擇店家 --</option>
                             ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
                         </select>
-                        <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
-                        <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
-                        <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">更新店家資料</button>
+                        <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none">
+                        <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none">
+                        <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl text-lg active:scale-95 transition-transform shadow-md">更新店家資料</button>
                     </div>
                 </div>
 
-                <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8">
-                    <i data-lucide="archive" class="w-5 h-5"></i> 執行日落打烊與封存
+                <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8">
+                    <i data-lucide="archive" class="w-6 h-6"></i> 執行日落打烊與封存
                 </button>
             </div>`;
             container.innerHTML = html;
@@ -1058,9 +1168,12 @@
         }
 
         async function saveSystemSettings() {
+            // 抓取被勾選的店家
+            const checkedShops = Array.from(document.querySelectorAll('.shop-checkbox:checked')).map(cb => cb.value);
+
             const data = {
                 isOpen: document.getElementById('setIsOpen').checked,
-                openedShops: document.getElementById('setOpenedShops').value.split(',').map(s=>s.trim()).filter(s=>s),
+                openedShops: checkedShops,
                 deadline: document.getElementById('setDeadline').value
             };
             showLoading('更新設定中...');
@@ -1095,18 +1208,26 @@
             
             img.src = url;
             lightbox.classList.remove('hidden');
-
-            setTimeout(() => {
+            
+            // 確保圖片載入後再初始化 Panzoom，並設定初始縮放為適應螢幕
+            img.onload = () => {
                 if (pzInstance) pzInstance.destroy();
+                
+                // 強制圖片初始樣式為 contain 確保不超出邊界
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100vh';
+                img.style.objectFit = 'contain';
+
                 pzInstance = Panzoom(img, {
-                    maxScale: 6, minScale: 0.5, contain: 'outside', step: 0.3
+                    maxScale: 6, minScale: 1, contain: 'outside', step: 0.3,
+                    startScale: 1 // 確保一開始是 1 倍大小
                 });
                 
                 // 確實移除舊事件避免疊加
                 if (pzWheelHandler) container.removeEventListener('wheel', pzWheelHandler);
                 pzWheelHandler = pzInstance.zoomWithWheel;
                 container.addEventListener('wheel', pzWheelHandler);
-            }, 100);
+            };
         }
 
         function closeLightbox() {
