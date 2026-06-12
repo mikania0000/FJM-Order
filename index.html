@@ -3,322 +3,1094 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>皮客覓 PickMeal - 專屬點餐小幫手</title>
-    <!-- Tailwind CSS -->
+    <title>皮客覓 PickMeal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Panzoom 套件 (用於圖片縮放) -->
-    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom/dist/panzoom.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <style>
-        html { font-size: 16px; }
-        body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background-color: #F4F7F6; color: #333; }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f4f7f6; -webkit-tap-highlight-color: transparent; }
         
-        /* 皮客覓專屬品牌色系 (星巴克綠基底 + 皮克敏三原色點綴) */
-        :root {
-            --brand-color: #006241;
-            --brand-light: #E8F5E9;
-            --pik-red: #E53935;
-            --pik-yellow: #FDD835;
-            --pik-blue: #1E88E5;
+        /* iPhone 底部安全距離防呆 */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)) !important; }
         }
-        .bg-brand { background-color: var(--brand-color); }
-        .text-brand { color: var(--brand-color); }
-        .border-brand { border-color: var(--brand-color); }
-        .bg-brand-light { background-color: var(--brand-light); }
         
-        .card { 
-            background-color: white; border-radius: 1.25rem; padding: 1.25rem; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); 
-            border: 1px solid #edf2f7; transition: all 0.2s ease; 
-        }
-        .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); transform: translateY(-2px); }
-        
-        .btn-primary { 
-            background-color: var(--brand-color); color: white; font-weight: 900; 
-            padding: 1rem 1.5rem; border-radius: 9999px; box-shadow: 0 4px 6px rgba(0, 98, 65, 0.2); 
-            transition: all 0.2s; font-size: 1.125rem; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border: none; cursor: pointer;
-        }
-        .btn-primary:hover { background-color: #004d33; transform: translateY(-1px); box-shadow: 0 6px 8px rgba(0, 98, 65, 0.3); }
-        .btn-primary:active { transform: scale(0.97); }
-        .btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
-        
-        .btn-secondary { 
-            background-color: #f3f4f6; color: #4b5563; font-weight: bold; 
-            padding: 1rem 1.5rem; border-radius: 9999px; transition: all 0.2s; font-size: 1.125rem; width: 100%; border: none; cursor: pointer;
-        }
-        .btn-secondary:hover { background-color: #e5e7eb; color: #1f2937; }
-        .btn-secondary:active { transform: scale(0.97); }
-        
-        input, select, textarea { 
-            font-size: 16px !important; border-radius: 1rem; border: 2px solid #e5e7eb; 
-            padding: 1rem; width: 100%; outline: none; transition: all 0.2s;
-            box-sizing: border-box; background-color: #f9fafb; font-weight: 600; color: #374151;
-        }
-        input:focus, select:focus, textarea:focus { 
-            border-color: var(--brand-color); background-color: white; box-shadow: 0 0 0 4px rgba(0, 98, 65, 0.1); 
-        }
-
-        /* 盆栽小綠芽發芽動畫 */
-        @keyframes sprout-grow {
-            0% { transform: scaleY(0) translateY(10px); opacity: 0; }
-            50% { transform: scaleY(1.2) translateY(-2px); opacity: 1; }
-            100% { transform: scaleY(1) translateY(0); opacity: 1; }
-        }
-        .animate-sprout { transform-origin: bottom center; animation: sprout-grow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        
-        @keyframes sway {
-            0%, 100% { transform: rotate(-5deg); }
-            50% { transform: rotate(5deg); }
-        }
-        .animate-sway { animation: sway 2s infinite ease-in-out; transform-origin: bottom center; }
-
+        /* 隱藏卷軸 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            .pb-safe { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important; }
-        }
 
-        /* 菜單手風琴動畫 */
-        .accordion-content { overflow: hidden; transition: max-height 0.3s ease-in-out; max-height: 0; }
-        .accordion-content.expanded { max-height: 2000px; }
-        .accordion-icon { transition: transform 0.3s ease; }
-        .expanded .accordion-icon { transform: rotate(180deg); }
+        /* 盆栽與小芽動畫 */
+        @keyframes sprout-grow {
+            0% { transform: translateY(10px) scale(0.5); opacity: 0; }
+            50% { transform: translateY(-5px) scale(1.1); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes sprout-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        @keyframes float-sparkle {
+            0%, 100% { opacity: 0.5; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .animate-sprout { animation: sprout-grow 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-bounce-slow { animation: sprout-bounce 2s infinite ease-in-out; }
+        .sparkle-1 { animation: float-sparkle 2s infinite ease-in-out; }
+        .sparkle-2 { animation: float-sparkle 2.5s infinite ease-in-out 0.5s; }
+        .sparkle-3 { animation: float-sparkle 1.8s infinite ease-in-out 1s; }
+
+        /* 主題色配置 */
+        .theme-green { background-color: #006241; }
+        .theme-text { color: #006241; }
+        .theme-light { background-color: #e8f3ee; }
     </style>
 </head>
-<body class="antialiased pb-24 selection:bg-brand-light selection:text-brand">
+<body class="text-slate-800 antialiased overflow-hidden flex flex-col h-screen">
 
-    <div id="app" class="max-w-md mx-auto min-h-screen relative shadow-2xl bg-[#F4F7F6] overflow-hidden flex flex-col">
-        
-        <!-- 全域 Loading 遮罩 (盆栽培育版) -->
-        <div id="loader" class="fixed inset-0 bg-white/95 backdrop-blur-sm z-[100] flex flex-col items-center justify-center hidden">
-            <div class="relative w-32 h-32 flex items-center justify-center mb-4">
-                <!-- 盆栽底座 -->
-                <div class="absolute bottom-0 w-16 h-12 bg-brand rounded-b-2xl rounded-t-lg z-10 border-4 border-[#004d33]">
-                    <div class="w-full h-3 bg-[#004d33] rounded-t-sm opacity-50"></div>
+    <!-- === 浮動提示框 === -->
+    <div id="alertBox" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full theme-light theme-text flex items-center justify-center shrink-0">
+                    <i data-lucide="info" class="w-5 h-5"></i>
                 </div>
-                <!-- 小綠芽 -->
-                <svg class="w-12 h-12 text-green-500 absolute bottom-8 z-0 animate-sway" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C7 2 4 6 4 10c0 2.5 1 4.5 2.5 6.5C8 18.5 11 22 12 22c1 0 4-3.5 5.5-5.5C19 14.5 20 12.5 20 10c0-4-3-8-8-8zm0 18c-1-1.5-3-4-4-5.5C6.5 13 6 11.5 6 10c0-3 2-6 6-6s6 3 6 6c0 1.5-.5 3-2 4.5-1 1.5-3 4-4 5.5z"/>
-                    <path fill="#fff" d="M10 9a1 1 0 100-2 1 1 0 000 2zm4 0a1 1 0 100-2 1 1 0 000 2z"/>
-                </svg>
+                <h3 id="alertTitle" class="text-lg font-bold text-slate-800">提示</h3>
             </div>
-            <p class="text-brand font-black text-xl animate-pulse" id="loaderText">皮客覓正在培育餐點中...</p>
+            <p id="alertMessage" class="text-slate-600 mb-6 leading-relaxed"></p>
+            <button onclick="closeAlert()" class="w-full theme-green text-white font-bold py-3.5 rounded-xl hover:bg-emerald-800 active:scale-95 transition-all">
+                確定，探險家！
+            </button>
         </div>
+    </div>
 
-        <!-- 自訂對話框 Modal -->
-        <div id="alertModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm transform scale-95 transition-transform duration-300 shadow-2xl">
-                <div class="w-12 h-12 bg-brand-light text-brand rounded-full flex items-center justify-center mb-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                </div>
-                <h3 id="alertTitle" class="text-2xl font-black mb-3 text-gray-800 tracking-tight">提示</h3>
-                <p id="alertMessage" class="text-gray-500 text-lg mb-8 leading-relaxed font-medium"></p>
-                <div class="flex gap-3" id="alertButtons">
-                    <button onclick="closeAlert()" class="btn-primary" id="alertBtnOk">確定</button>
-                </div>
-            </div>
+    <!-- === 全域 Loading 動畫 (盆栽培養中) === -->
+    <div id="loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
+        <div class="relative w-24 h-24 mb-4">
+            <div class="absolute bottom-0 w-full h-1/2 bg-[#006241] rounded-b-xl opacity-20"></div>
+            <i data-lucide="sprout" class="w-16 h-16 theme-text absolute bottom-4 left-4 animate-bounce-slow"></i>
         </div>
+        <h2 id="loadingText" class="text-xl font-bold theme-text tracking-wide">皮克敏培育中...</h2>
+    </div>
 
-        <!-- 圖片放大燈箱 Lightbox (Panzoom) -->
-        <div id="lightbox" class="fixed inset-0 bg-black/95 z-[110] flex items-center justify-center hidden flex-col">
-            <div class="absolute top-4 right-4 z-50">
-                <button onclick="closeLightbox()" class="text-white bg-gray-800/80 hover:bg-gray-700 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold backdrop-blur">✕</button>
-            </div>
-            <div class="absolute bottom-8 text-white/60 text-sm font-bold bg-black/50 px-4 py-2 rounded-full pointer-events-none">
-                支援雙指縮放、滑鼠滾輪與拖曳
-            </div>
-            <!-- Panzoom 容器 -->
-            <div id="panzoom-container" class="w-full h-full flex items-center justify-center overflow-hidden">
-                <img id="lightboxImg" src="" class="max-w-full max-h-full object-contain cursor-move" alt="菜單大圖">
-            </div>
+    <!-- === 圖片放大燈箱 (Panzoom) === -->
+    <div id="lightbox" class="fixed inset-0 z-[60] bg-black/95 hidden flex flex-col">
+        <div class="flex justify-between items-center p-4 text-white absolute top-0 w-full z-10 bg-gradient-to-b from-black/60 to-transparent">
+            <span class="text-sm font-medium opacity-80"><i data-lucide="move" class="inline w-4 h-4 mr-1"></i>雙指/滾輪縮放，單指拖曳</span>
+            <button onclick="closeLightbox()" class="p-2 bg-white/20 rounded-full backdrop-blur"><i data-lucide="x" class="w-6 h-6"></i></button>
         </div>
-
-        <div id="viewLogin" class="p-8 flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-brand-light to-[#F4F7F6]">
-            <!-- 盆栽 Logo 區塊 -->
-            <div class="relative w-32 h-32 mb-4">
-                <div class="absolute inset-0 bg-white rounded-3xl shadow-xl transform rotate-3 flex items-center justify-center border-4 border-brand"></div>
-                <div class="absolute inset-0 bg-brand text-white rounded-3xl shadow-xl transform -rotate-3 flex flex-col items-center justify-center">
-                     <svg class="w-12 h-12 mb-1 animate-sway" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-                     <div class="w-16 h-8 bg-white/20 rounded-t-lg border-b-4 border-white/40 flex items-end justify-center pb-1">
-                         <div class="w-2 h-2 bg-white rounded-full mx-1"></div>
-                         <div class="w-2 h-2 bg-white rounded-full mx-1"></div>
-                     </div>
-                </div>
-            </div>
-
-            <!-- 精緻文字排版 -->
-            <div class="text-center mb-10">
-                <h1 class="text-5xl font-black text-gray-800 tracking-tight mb-1">皮客覓</h1>
-                <h2 class="text-xl font-bold tracking-[0.3em] text-brand uppercase">PickMeal</h2>
-            </div>
-            
-            <div class="w-full space-y-5 bg-white p-8 rounded-[2rem] shadow-lg border border-gray-100">
-                <div>
-                    <label class="block text-gray-500 text-sm font-bold mb-2 ml-1">探險家帳號</label>
-                    <input type="text" id="loginUser" placeholder="請輸入帳號">
-                </div>
-                <div>
-                    <label class="block text-gray-500 text-sm font-bold mb-2 ml-1">通關密碼</label>
-                    <input type="password" id="loginPass" placeholder="請輸入密碼">
-                </div>
-                <div>
-                    <label class="block text-gray-500 text-sm font-bold mb-2 ml-1">稱呼 <span class="text-xs font-normal opacity-70">(選填)</span></label>
-                    <input type="text" id="loginName" placeholder="您希望皮克敏怎麼稱呼您？">
-                </div>
-                <button onclick="doLogin()" class="btn-primary mt-8">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                    登入基地
-                </button>
-            </div>
+        <div id="panzoom-container" class="flex-1 overflow-hidden relative touch-none flex items-center justify-center w-full h-full">
+            <img id="lightbox-img" src="" alt="菜單" class="max-w-full max-h-full object-contain pointer-events-none">
         </div>
+    </div>
 
-        <div id="viewMain" class="hidden flex-col h-screen">
-            <header class="bg-brand text-white pt-6 pb-5 px-6 rounded-b-[2rem] shadow-lg z-20 shrink-0">
-                <div class="flex justify-between items-start">
-                    <div id="greetingText" class="leading-tight flex-1">
-                        <!-- 動態問候語 -->
+    <!-- === 登入頁面 (登陸基地) === -->
+    <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-6 transition-transform duration-500">
+        <div class="w-full max-w-md">
+            <!-- 精緻版 Logo -->
+            <div class="flex flex-col items-center mb-10">
+                <div class="w-28 h-28 theme-green rounded-[2rem] shadow-xl flex flex-col items-center justify-center relative mb-4">
+                    <!-- Sparkles -->
+                    <svg class="absolute top-4 right-4 w-10 h-10 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    <svg class="absolute top-2 left-6 w-4 h-4 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
+                    <svg class="absolute bottom-10 left-4 w-5 h-5 text-white sparkle-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
+                    
+                    <!-- Sprout -->
+                    <svg class="w-10 h-10 text-white mt-2 animate-bounce-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.7-4.3 1.4-4.9 2z"/></svg>
+                    <!-- Pot -->
+                    <div class="absolute bottom-0 w-20 h-8 bg-white/20 rounded-t-xl backdrop-blur-sm border-t border-white/30 flex justify-center gap-2 pt-2">
+                        <div class="w-2 h-2 bg-white rounded-full"></div>
+                        <div class="w-2 h-2 bg-white rounded-full"></div>
                     </div>
-                    <button onclick="logout()" class="bg-white/10 hover:bg-white/20 rounded-full p-2.5 transition flex items-center justify-center shrink-0 ml-4 border border-white/10 backdrop-blur-sm">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    </button>
                 </div>
-            </header>
+                <!-- 標題排版優化 -->
+                <h1 class="text-4xl font-black text-slate-800 tracking-wider">皮客覓</h1>
+                <p class="text-sm font-bold theme-text tracking-[0.3em] mt-1 uppercase">PickMeal</p>
+                <p class="text-xs text-slate-400 mt-2 tracking-widest">你的專屬點餐小幫手</p>
+            </div>
 
-            <!-- 內容區 (滾動區域) -->
-            <main id="mainContent" class="flex-1 overflow-y-auto p-4 pb-10"></main>
-
-            <nav class="bg-white/90 backdrop-blur-md border-t border-gray-200 fixed bottom-0 w-full max-w-md flex justify-around pb-safe pt-2 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] z-40 shrink-0">
-                <button onclick="switchTab('menu')" class="flex flex-col items-center p-2 w-full text-gray-400 hover:text-brand transition relative group" id="nav-menu">
-                    <div class="absolute inset-0 bg-brand-light opacity-0 group-hover:opacity-100 rounded-xl transition-opacity z-[-1] scale-90"></div>
-                    <svg class="w-7 h-7 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    <span class="text-[11px] font-black uppercase tracking-wide">尋覓物資</span>
-                </button>
-                <button onclick="switchTab('cart')" class="flex flex-col items-center p-2 w-full text-gray-400 hover:text-brand relative transition group" id="nav-cart">
-                    <div class="absolute inset-0 bg-brand-light opacity-0 group-hover:opacity-100 rounded-xl transition-opacity z-[-1] scale-90"></div>
-                    <span id="cartBadge" class="absolute top-1 right-[25%] bg-[var(--pik-red)] text-white text-[10px] font-black rounded-full min-w-[20px] h-5 flex items-center justify-center hidden shadow-md px-1 border-2 border-white">0</span>
-                    <svg class="w-7 h-7 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                    <span class="text-[11px] font-black uppercase tracking-wide">物資背包</span>
-                </button>
-                <button onclick="switchTab('orders')" class="flex flex-col items-center p-2 w-full text-gray-400 hover:text-brand transition group" id="nav-orders">
-                    <div class="absolute inset-0 bg-brand-light opacity-0 group-hover:opacity-100 rounded-xl transition-opacity z-[-1] scale-90"></div>
-                    <svg class="w-7 h-7 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                    <span class="text-[11px] font-black uppercase tracking-wide">我的探險</span>
-                </button>
-                <button onclick="switchTab('admin')" class="hidden flex-col items-center p-2 w-full text-gray-400 hover:text-[var(--pik-blue)] transition group" id="nav-admin">
-                    <div class="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity z-[-1] scale-90"></div>
-                    <svg class="w-7 h-7 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span class="text-[11px] font-black uppercase tracking-wide">指揮官室</span>
-                </button>
-            </nav>
-        </div>
-
-        <div id="configModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-end justify-center hidden opacity-0 transition-opacity">
-            <div class="bg-white w-full max-w-md rounded-t-[2rem] p-6 pb-safe transform translate-y-full transition-transform duration-300 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] flex flex-col max-h-[90vh]" id="configModalContent">
-                
-                <div class="flex justify-between items-start mb-4 shrink-0 relative">
-                    <div class="w-12 h-1.5 bg-gray-200 rounded-full absolute -top-3 left-1/2 transform -translate-x-1/2"></div>
-                    <div class="pr-10">
-                        <h3 class="text-2xl font-black text-gray-800 tracking-tight leading-tight" id="cfgName">品項名稱</h3>
-                        <p class="text-brand font-black text-xl mt-1.5" id="cfgPriceBase">$0</p>
+            <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-100">
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 ml-1">探險家帳號</label>
+                        <input type="text" id="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all" placeholder="請輸入帳號">
                     </div>
-                    <button onclick="closeConfig()" class="bg-gray-100 rounded-full p-2.5 text-gray-500 hover:bg-gray-200 transition shrink-0 absolute right-0 top-0">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <!-- 選項捲動區 -->
-                <div id="cfgOptions" class="space-y-6 overflow-y-auto no-scrollbar flex-1 pb-4 min-h-[30vh]">
-                    <!-- 動態選項產生區 -->
-                </div>
-
-                <!-- 底部操作區 -->
-                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 shrink-0 bg-white">
-                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-[1.25rem] p-1">
-                        <button onclick="adjQty(-1)" class="w-12 h-12 rounded-xl text-gray-500 hover:bg-white hover:shadow-sm text-2xl font-bold transition flex items-center justify-center active:scale-90">−</button>
-                        <span id="cfgQty" class="w-10 text-center text-xl font-black text-gray-800">1</span>
-                        <button onclick="adjQty(1)" class="w-12 h-12 rounded-xl text-brand hover:bg-white hover:shadow-sm text-2xl font-bold transition flex items-center justify-center active:scale-90">+</button>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 ml-1">通關密碼</label>
+                        <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all" placeholder="請輸入密碼">
                     </div>
-                    <button onclick="confirmAddToCart()" class="btn-primary flex-1 py-4 text-xl justify-between px-6 shadow-[0_4px_15px_rgba(0,98,65,0.25)]">
-                        <span>放入背包</span>
-                        <span id="cfgTotal" class="font-black bg-white/20 px-3 py-1 rounded-lg tracking-wider">$0</span>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 ml-1">稱呼 <span class="text-slate-400 font-normal">(選填)</span></label>
+                        <input type="text" id="displayName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all" placeholder="您希望皮客覓怎麼稱呼您？">
+                    </div>
+                    <button onclick="login()" class="w-full theme-green text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/20 mt-4 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all">
+                        <i data-lucide="log-in" class="w-5 h-5"></i> 登入基地
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // 🚨 替換成您的最新 Google Apps Script 網址
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyI7t1pS-fQvFkZzUfS9eRz_jECAKj02QWp32YI3B11w7dF1V_41aRIfYc8Ym_E689Ciw/exec';
+    <!-- === 主應用程式 (App 佈局) === -->
+    <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         
-        let state = {
-            user: null,
-            token: localStorage.getItem('sessionToken'),
+        <!-- 頂部導航 -->
+        <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
+            <div class="flex items-center gap-2">
+                <i data-lucide="sprout" class="w-6 h-6 theme-text"></i>
+                <div>
+                    <h1 class="text-lg font-black text-slate-800 leading-tight">皮客覓</h1>
+                    <p class="text-[10px] theme-text font-bold tracking-widest leading-none">PICKMEAL</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-sm font-bold text-slate-700" id="userGreeting">探險家</div>
+                <div class="text-[10px] text-slate-500" id="appDeadline">截止時間: 載入中</div>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <main id="mainContent" class="flex-1 overflow-y-auto no-scrollbar pb-safe w-full max-w-3xl mx-auto"></main>
+
+        <!-- 底部導覽列 -->
+        <nav class="bg-white border-t border-slate-100 px-6 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex justify-between items-center fixed bottom-0 w-full max-w-3xl left-1/2 -translate-x-1/2 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] rounded-t-3xl">
+            <button onclick="switchTab('menu')" id="tab-menu" class="flex flex-col items-center p-2 flex-1 theme-text transition-transform active:scale-90">
+                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">探索菜單</span>
+            </button>
+            <button onclick="switchTab('cart')" id="tab-cart" class="flex flex-col items-center p-2 flex-1 text-slate-400 hover:text-slate-600 transition-transform active:scale-90 relative">
+                <i data-lucide="backpack" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">物資背包</span>
+                <span id="cartBadge" class="absolute top-1 right-1/4 translate-x-2 -translate-y-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="switchTab('profile')" id="tab-profile" class="flex flex-col items-center p-2 flex-1 text-slate-400 hover:text-slate-600 transition-transform active:scale-90">
+                <i data-lucide="user" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-bold">指揮所</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- 點餐彈窗 (BottomSheet) -->
+    <div id="itemModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
+        <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 shrink-0"></div>
+            <div class="flex justify-between items-start mb-4 shrink-0">
+                <div>
+                    <h2 id="modalItemName" class="text-xl font-bold text-slate-800"></h2>
+                    <p id="modalItemPrice" class="theme-text font-bold text-lg mt-1"></p>
+                </div>
+                <button onclick="closeItemModal()" class="p-2 bg-slate-100 rounded-full text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto no-scrollbar -mx-2 px-2" id="modalOptionsArea">
+                <!-- 選項會動態渲染在這裡 -->
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100 shrink-0 flex gap-4 items-center">
+                <div class="flex items-center bg-slate-100 rounded-xl p-1">
+                    <button onclick="adjustQty(-1)" class="w-10 h-10 flex items-center justify-center text-slate-600 font-bold text-xl active:bg-slate-200 rounded-lg">-</button>
+                    <span id="modalQty" class="w-8 text-center font-bold text-slate-800">1</span>
+                    <button onclick="adjustQty(1)" class="w-10 h-10 flex items-center justify-center text-slate-600 font-bold text-xl active:bg-slate-200 rounded-lg">+</button>
+                </div>
+                <button onclick="addToCart()" class="flex-1 theme-green text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 active:scale-95 transition-transform">
+                    <i data-lucide="plus" class="w-5 h-5"></i> 放入背包 <span id="modalBtnPrice" class="ml-1 bg-white/20 px-2 py-0.5 rounded text-sm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 系統設定區
+        // ==========================================
+        // ⚠️ 請填入您最新的 Google Apps Script 網頁應用程式網址
+        const SCRIPT_URL = ''; 
+        
+        const state = {
+            user: null, token: null,
             system: { isOpen: false, openedShops: [], deadline: '' },
-            allShops: [], 
-            menuData: {},
-            shopImages: {},
-            shopPhones: {},
-            userOrders: [],
+            data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, userOrders: [] },
             cart: [],
             currentTab: 'menu',
             activeShop: '',
-            tempItem: null, 
-            proxyName: '' // 指揮官代點姓名
+            tempItem: null, // 暫存正在選擇的餐點
+            adminProxyName: '' // 指揮官代點姓名
         };
 
-        let pzInstance = null; 
-        let pzWheelHandler = null; 
+        let pzInstance = null;
+        let pzWheelHandler = null;
 
-        // --- UI 工具 ---
-        function showLoading(text = '皮客覓培育中...') {
-            document.getElementById('loaderText').innerText = text;
-            const loader = document.getElementById('loader');
-            loader.classList.remove('hidden');
-            // 重置動畫
-            const sprout = loader.querySelector('svg');
-            sprout.classList.remove('animate-sprout');
-            void sprout.offsetWidth; 
-            sprout.classList.add('animate-sprout');
+        // ==========================================
+        // UI 基礎工具
+        // ==========================================
+        lucide.createIcons();
+
+        function showLoading(text = '皮克敏培育中...') {
+            document.getElementById('loadingText').textContent = text;
+            const el = document.getElementById('loading');
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.remove('opacity-0'), 10);
         }
         function hideLoading() {
-            document.getElementById('loader').classList.add('hidden');
+            const el = document.getElementById('loading');
+            el.classList.add('opacity-0');
+            setTimeout(() => el.classList.add('hidden'), 300);
         }
-        
-        function showAlert(msg, title = '系統提示', buttons = [{text: '確定', primary: true, action: 'closeAlert()'}]) {
-            document.getElementById('alertTitle').innerText = title;
-            document.getElementById('alertMessage').innerHTML = msg;
-            
-            const btnContainer = document.getElementById('alertButtons');
-            btnContainer.innerHTML = '';
-            buttons.forEach(b => {
-                const btn = document.createElement('button');
-                btn.className = b.primary ? 'btn-primary flex-1' : 'btn-secondary flex-1';
-                btn.innerText = b.text;
-                if(!b.primary) btn.style.color = '#374151';
-                btn.onclick = () => { eval(b.action); };
-                btnContainer.appendChild(btn);
-            });
 
-            const modal = document.getElementById('alertModal');
+        function showAlert(msg, title = '系統提示') {
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = msg;
+            const el = document.getElementById('alertBox');
+            el.classList.remove('hidden');
+            setTimeout(() => {
+                el.classList.remove('opacity-0');
+                el.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+        function closeAlert() {
+            const el = document.getElementById('alertBox');
+            el.classList.add('opacity-0');
+            el.querySelector('div').classList.add('scale-95');
+            setTimeout(() => el.classList.add('hidden'), 300);
+        }
+
+        // ==========================================
+        // API 溝通層
+        // ==========================================
+        async function apiCall(action, data = {}) {
+            if(!SCRIPT_URL) {
+                showAlert('請先在 HTML 中設定 SCRIPT_URL 網址！', '系統設定錯誤');
+                hideLoading(); return null;
+            }
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action, token: state.token, data })
+                });
+                const result = await response.json();
+                if (result.status === 'error') {
+                    if (result.message.includes('Token')) logout();
+                    throw new Error(result.message);
+                }
+                return result.data;
+            } catch (error) {
+                hideLoading();
+                showAlert(error.message, '連線異常');
+                return null;
+            }
+        }
+
+        // ==========================================
+        // 系統初始化與登入
+        // ==========================================
+        window.onload = () => {
+            const savedToken = localStorage.getItem('pickmeal_token');
+            const savedUser = localStorage.getItem('pickmeal_user');
+            if (savedToken && savedUser) {
+                state.token = savedToken;
+                state.user = JSON.parse(savedUser);
+                loadInitialData();
+            } else {
+                document.getElementById('loginPage').classList.remove('-translate-y-full');
+            }
+        };
+
+        async function login() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            const n = document.getElementById('displayName').value.trim();
+            if (!u || !p) return showAlert('請輸入完整的探險家帳號與密碼！');
+
+            showLoading('正在驗證探險家身分...');
+            const res = await apiCall('login', { username: u, password: p, name: n });
+            if (res) {
+                state.token = res.token;
+                state.user = res.user;
+                localStorage.setItem('pickmeal_token', res.token);
+                localStorage.setItem('pickmeal_user', JSON.stringify(res.user));
+                processInitialData(res.initialData);
+                enterApp();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('pickmeal_token');
+            localStorage.removeItem('pickmeal_user');
+            location.reload();
+        }
+
+        async function loadInitialData() {
+            showLoading('正在與基地同步資料...');
+            const res = await apiCall('getInitialData');
+            if (res) {
+                processInitialData(res);
+                enterApp();
+            }
+        }
+
+        function processInitialData(data) {
+            state.system = data.systemStatus;
+            state.data = data;
+            document.getElementById('userGreeting').textContent = `${state.user.role === '管理' ? '指揮官' : '探險家'} ${state.user.name}`;
+            document.getElementById('appDeadline').textContent = state.system.deadline ? `打烊時間: ${state.system.deadline}` : '隨時可發射洋蔥號';
+            
+            if (state.system.openedShops.length > 0 && !state.activeShop) {
+                state.activeShop = state.system.openedShops[0];
+            }
+        }
+
+        function enterApp() {
+            hideLoading();
+            document.getElementById('loginPage').classList.add('-translate-y-full');
+            document.getElementById('mainApp').classList.remove('hidden');
+            switchTab('menu');
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 頁籤切換與渲染
+        // ==========================================
+        function switchTab(tabId) {
+            state.currentTab = tabId;
+            ['menu', 'cart', 'profile'].forEach(id => {
+                const btn = document.getElementById(`tab-${id}`);
+                if (id === tabId) {
+                    btn.classList.add('theme-text');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('theme-text');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            const content = document.getElementById('mainContent');
+            if (tabId === 'menu') renderMenuTab(content);
+            if (tabId === 'cart') renderCartTab(content);
+            if (tabId === 'profile') renderProfileTab(content);
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // Tab 1: 探索菜單 (智慧解析引擎)
+        // ==========================================
+        function renderMenuTab(container) {
+            if (!state.system.isOpen) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full p-8 text-center text-slate-500">
+                        <div class="w-24 h-24 theme-light rounded-full flex items-center justify-center mb-4">
+                            <i data-lucide="moon" class="w-10 h-10 theme-text"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-700 mb-2">日落了</h2>
+                        <p>皮克敏已回歸洋蔥號，<br>目前基地不開放物資採集。</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `<div class="p-4 space-y-4">`;
+
+            // 指揮官代點模式
+            if (state.user.role === '管理') {
+                html += `
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-16 h-16 bg-amber-100 rounded-bl-full -z-10"></div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="headset" class="w-5 h-5 text-amber-600"></i>
+                        <span class="font-bold text-amber-800 text-sm">指揮官呼叫支援 (代點模式)</span>
+                    </div>
+                    <input type="text" id="proxyNameInput" value="${state.adminProxyName}" onchange="state.adminProxyName = this.value" class="w-full bg-white border border-amber-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="輸入代點姓名 (留空則為自己點)">
+                </div>`;
+            }
+
+            // 店家切換與資訊
+            html += `
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-0 z-10">
+                    ${state.system.openedShops.map(shop => `
+                        <button onclick="state.activeShop='${shop}'; renderMenuTab(document.getElementById('mainContent'))" 
+                            class="whitespace-nowrap px-5 py-2.5 rounded-2xl font-bold text-sm transition-all ${state.activeShop === shop ? 'theme-green text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}">
+                            ${shop}
+                        </button>
+                    `).join('')}
+                </div>`;
+
+            const imgUrl = state.data.shopImages[state.activeShop];
+            const phone = state.data.shopPhones[state.activeShop];
+            
+            if (imgUrl || phone) {
+                html += `<div class="flex gap-2">`;
+                if(imgUrl) {
+                    html += `
+                    <div class="flex-1 bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition-transform" onclick="openLightbox('${imgUrl}')">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center"><i data-lucide="image" class="w-5 h-5 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm">查看完整菜單</span>
+                        </div>
+                        <i data-lucide="zoom-in" class="w-5 h-5 text-slate-400"></i>
+                    </div>`;
+                }
+                if(phone) {
+                    html += `
+                    <a href="tel:${phone}" class="bg-slate-800 text-white rounded-2xl p-3 shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform px-5">
+                        <i data-lucide="phone" class="w-5 h-5"></i>
+                    </a>`;
+                }
+                html += `</div>`;
+            }
+
+            // 智慧渲染菜單列表
+            const menu = state.data.menuData[state.activeShop] || [];
+            let currentCategory = '';
+            
+            html += `<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden pb-4">`;
+            
+            menu.forEach((item, index) => {
+                // 忽略無效資料
+                if (!item['品項']) return;
+
+                // 類別標題
+                if (item['類別'] && item['類別'] !== currentCategory) {
+                    currentCategory = item['類別'];
+                    html += `
+                    <div class="bg-slate-50 px-5 py-3 mt-2 mb-1 flex items-center gap-2 border-l-4 border-[#006241]">
+                        <span class="font-black text-slate-700">${currentCategory}</span>
+                    </div>`;
+                }
+
+                // 智慧解析價格 (找出所有可能的價格欄位)
+                let basePrice = 0;
+                let priceLabels = [];
+                for (let key in item) {
+                    if (key === '_originalIndex' || key === '類別' || key === '品項') continue;
+                    // 如果欄位名稱包含價格、單價，或是單純是 L/M/瓶，就認定為價格欄位
+                    if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
+                        const p = parseInt(item[key]);
+                        if (!isNaN(p) && p > 0) {
+                            priceLabels.push({ label: key, price: p });
+                            if (basePrice === 0) basePrice = p; // 抓第一個當作預設顯示價格
+                        }
+                    }
+                }
+
+                if (basePrice > 0) {
+                    html += `
+                    <div onclick="openItemModal(${index})" class="px-5 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors">
+                        <div class="pr-4">
+                            <h4 class="font-bold text-slate-800 text-[15px] leading-tight mb-1">${item['品項']}</h4>
+                            ${priceLabels.length > 1 ? `<p class="text-xs text-slate-400">多種規格可選</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="font-bold theme-text text-lg tracking-tight">$${basePrice}</span>
+                            <div class="w-8 h-8 rounded-full theme-light flex items-center justify-center">
+                                <i data-lucide="plus" class="w-4 h-4 theme-text"></i>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            });
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 點餐彈窗邏輯 (智慧選項解析)
+        // ==========================================
+        function openItemModal(itemIndex) {
+            const itemData = state.data.menuData[state.activeShop][itemIndex];
+            
+            // 初始化暫存項目
+            state.tempItem = {
+                shop: state.activeShop,
+                name: itemData['品項'],
+                basePrice: 0,
+                selectedSpec: {}, // 儲存 { 甜度: '半糖', 附餐: '可樂(大)(+$5)' }
+                extraPrice: 0,
+                quantity: 1
+            };
+
+            document.getElementById('modalItemName').textContent = itemData['品項'];
+            document.getElementById('modalQty').textContent = '1';
+
+            let optionsHtml = '';
+            let isFirstPriceSet = false;
+
+            // 分類解析所有欄位
+            for (let key in itemData) {
+                if (key === '_originalIndex' || key === '類別' || key === '品項' || !itemData[key]) continue;
+
+                // 1. 處理「價格規格」
+                if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
+                    const price = parseInt(itemData[key]);
+                    if (!isNaN(price)) {
+                        if(!isFirstPriceSet) {
+                            state.tempItem.basePrice = price;
+                            state.tempItem.selectedSpec['規格'] = key.includes('單價') ? '' : key;
+                            isFirstPriceSet = true;
+                        }
+                        
+                        // 建立 Radio Group 供選擇
+                        optionsHtml += `
+                        <div class="mb-5">
+                            <h4 class="text-xs font-bold text-slate-500 mb-2 border-l-2 border-[#006241] pl-2">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
+                                    <div class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
+                                        ${key.includes('單價') ? `單價 (+$${price})` : `${key} (+$${price})`}
+                                    </div>
+                                </label>
+                            </div>
+                        </div>`;
+                    }
+                } 
+                // 2. 處理「客製化選項」(下拉選單或單選)
+                else {
+                    const optString = String(itemData[key]);
+                    // 支援斜線或逗號分隔
+                    const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
+                    
+                    if (options.length > 0) {
+                        state.tempItem.selectedSpec[key] = ''; // 預設空
+
+                        optionsHtml += `
+                        <div class="mb-5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <h4 class="text-xs font-bold text-slate-600 mb-2 flex justify-between items-center">
+                                <span>${key}</span>
+                                <span class="text-[10px] font-normal text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">必選</span>
+                            </h4>
+                            <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
+                                <option value="" disabled selected>-- 請選擇 --</option>`;
+                        
+                        options.forEach(opt => {
+                            // 智慧抓取加價 (例如: "可樂(大)+5", "換麻辣+$6")
+                            let extra = 0;
+                            let displayName = opt;
+                            const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); // 匹配 +5, +$6, + 10
+                            if (priceMatch) {
+                                extra = parseInt(priceMatch[1]);
+                                // 重組顯示文字，讓排版更乾淨
+                                displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
+                            }
+
+                            // 儲存實際要帶入購物車的值 (包含原名與金額，用 | 隔開以便後續計算)
+                            const valueData = `${displayName}|${extra}`;
+                            optionsHtml += `<option value="${valueData}">${displayName}</option>`;
+                        });
+                        
+                        optionsHtml += `</select></div>`;
+                    }
+                }
+            }
+
+            document.getElementById('modalOptionsArea').innerHTML = optionsHtml;
+            updateModalPrice();
+            
+            const modal = document.getElementById('itemModal');
             modal.classList.remove('hidden');
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
-                modal.firstElementChild.classList.remove('scale-95');
+                modal.querySelector('div').classList.remove('translate-y-full');
             }, 10);
         }
 
-        function closeAlert() {
-            const modal = document.getElementById('alertModal');
+        function closeItemModal() {
+            const modal = document.getElementById('itemModal');
             modal.classList.add('opacity-0');
-            modal.firstElementChild.classList.add('scale-95');
+            modal.querySelector('div').classList.add('translate-y-full');
             setTimeout(() => modal.classList.add('hidden'), 300);
+            state.tempItem = null;
         }
 
-        function showLightbox(url) {
-            if(!url) return showAlert('指揮官尚未上傳這家店的菜單圖片。', '查無資源');
+        // 規格變更 (影響基底價格)
+        function updateTempItemSpec(groupName, label, basePrice) {
+            state.tempItem.basePrice = basePrice;
+            state.tempItem.selectedSpec[groupName] = label;
+            updateModalPrice();
+        }
+
+        // 選項變更 (影響加價)
+        function updateTempItemOption(groupName, valueData) {
+            state.tempItem.selectedSpec[groupName] = valueData;
+            
+            // 重新計算所有下拉選項的總加價
+            let totalExtra = 0;
+            for(let key in state.tempItem.selectedSpec) {
+                if(key !== '規格' && state.tempItem.selectedSpec[key]) {
+                    const parts = state.tempItem.selectedSpec[key].split('|');
+                    if(parts.length > 1) totalExtra += parseInt(parts[1]);
+                }
+            }
+            state.tempItem.extraPrice = totalExtra;
+            updateModalPrice();
+        }
+
+        function adjustQty(delta) {
+            let q = state.tempItem.quantity + delta;
+            if (q < 1) q = 1;
+            state.tempItem.quantity = q;
+            document.getElementById('modalQty').textContent = q;
+            updateModalPrice();
+        }
+
+        function updateModalPrice() {
+            const singlePrice = state.tempItem.basePrice + state.tempItem.extraPrice;
+            const total = singlePrice * state.tempItem.quantity;
+            document.getElementById('modalItemPrice').textContent = `$${singlePrice}`;
+            document.getElementById('modalBtnPrice').textContent = `$${total}`;
+        }
+
+        function addToCart() {
+            // 檢查必選下拉選單是否都有選
+            for(let key in state.tempItem.selectedSpec) {
+                if(key !== '規格' && !state.tempItem.selectedSpec[key]) {
+                    return showAlert(`請選擇「${key}」！`);
+                }
+            }
+
+            // 組合最終規格字串
+            let specArr = [];
+            if(state.tempItem.selectedSpec['規格']) specArr.push(state.tempItem.selectedSpec['規格']);
+            for(let key in state.tempItem.selectedSpec) {
+                if(key !== '規格' && state.tempItem.selectedSpec[key]) {
+                     specArr.push(state.tempItem.selectedSpec[key].split('|')[0]); // 只取顯示名稱
+                }
+            }
+            const finalSpec = specArr.join(' / ');
+            const finalPrice = state.tempItem.basePrice + state.tempItem.extraPrice;
+
+            state.cart.push({
+                shop: state.tempItem.shop,
+                name: state.tempItem.name,
+                spec: finalSpec,
+                price: finalPrice,
+                quantity: state.tempItem.quantity,
+                name_override: state.adminProxyName || ''
+            });
+
+            updateCartBadge();
+            closeItemModal();
+            
+            // 顯示成功小動畫
+            const tabBtn = document.getElementById('tab-cart');
+            tabBtn.classList.add('scale-110', 'text-[#006241]');
+            setTimeout(() => tabBtn.classList.remove('scale-110', 'text-[#006241]'), 300);
+        }
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cartBadge');
+            if (state.cart.length > 0) {
+                badge.textContent = state.cart.length;
+                badge.classList.remove('hidden');
+                badge.classList.add('animate-sprout'); // 彈出動畫
+                setTimeout(()=> badge.classList.remove('animate-sprout'), 600);
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // Tab 2: 物資背包 (購物車)
+        // ==========================================
+        function renderCartTab(container) {
+            if (state.cart.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full p-8 text-center">
+                        <div class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
+                            <div class="absolute bottom-4 w-16 h-12 bg-slate-300 rounded-b-xl"></div>
+                            <div class="absolute bottom-16 w-4 h-4 bg-slate-200 rounded-full"></div>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-700 mb-2">物資背包空空的</h2>
+                        <p class="text-slate-500 text-sm">趕快去菜單播下美味的種子吧！</p>
+                        <button onclick="switchTab('menu')" class="mt-6 px-6 py-3 theme-light theme-text font-bold rounded-xl active:scale-95 transition-transform">去探索菜單</button>
+                    </div>`;
+                return;
+            }
+
+            let total = 0;
+            let html = `<div class="p-4 pb-32">
+                <h2 class="text-xl font-black text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="backpack" class="w-6 h-6 theme-text"></i> 已收集的物資</h2>
+                <div class="space-y-3">`;
+
+            state.cart.forEach((item, idx) => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                html += `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 animate-sprout" style="animation-delay: ${idx * 0.05}s">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start mb-1">
+                            <h4 class="font-bold text-slate-800">${item.name}</h4>
+                            <button onclick="state.cart.splice(${idx}, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent'));" class="text-red-400 p-1 hover:text-red-600 active:scale-90"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-2">${item.shop} ${item.spec ? `· ${item.spec}` : ''}</p>
+                        ${item.name_override ? `<p class="text-[10px] bg-amber-100 text-amber-800 inline-block px-2 py-0.5 rounded font-bold mb-2">代點: ${item.name_override}</p>` : ''}
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs font-bold text-slate-400">$${item.price} x ${item.quantity}</span>
+                            <span class="font-black theme-text">$${itemTotal}</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            html += `</div></div>
+            <div class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-full max-w-3xl left-1/2 -translate-x-1/2 p-4 bg-gradient-to-t from-white via-white to-transparent z-20">
+                <div class="bg-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-xl">
+                    <div class="text-white">
+                        <p class="text-xs opacity-70 mb-0.5">預估總計</p>
+                        <p class="text-xl font-black">$${total}</p>
+                    </div>
+                    <button onclick="submitOrder()" class="theme-green text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-transform shadow-lg shadow-emerald-900/50">
+                        發射洋蔥號 <i data-lucide="rocket" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>`;
+            container.innerHTML = html;
+        }
+
+        function checkIsPastDeadline() {
+            if (!state.system.deadline) return false;
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            return timeStr > state.system.deadline;
+        }
+
+        async function submitOrder() {
+            if (checkIsPastDeadline()) {
+                showAlert('已經超過今日點餐截止時間，皮克敏無法為您搬運物資囉！', '日落了');
+                return;
+            }
+            showLoading('皮克敏奮力搬運物資中...');
+            const res = await apiCall('submitOrder', state.cart);
+            if (res) {
+                showAlert(res, '發射成功！');
+                state.cart = [];
+                updateCartBadge();
+                loadInitialData(); // 重新抓取資料跳回主頁
+            }
+        }
+
+        // ==========================================
+        // Tab 3: 指揮所 (個人紀錄 / 店長後台)
+        // ==========================================
+        function renderProfileTab(container) {
+            let html = `<div class="p-4 space-y-6 pb-safe">
+                <!-- 個人身分卡 -->
+                <div class="bg-[#006241] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <svg class="absolute -right-4 -top-4 w-32 h-32 opacity-10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z"/></svg>
+                    <h2 class="text-sm font-bold opacity-80 mb-1">${state.user.role === '管理' ? '指揮官' : '探險家'}</h2>
+                    <h1 class="text-3xl font-black tracking-wide mb-4">${state.user.name}</h1>
+                    <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-sm font-bold py-2 px-4 rounded-xl transition-colors">切換帳號</button>
+                </div>`;
+
+            // 探險家個人今日紀錄
+            html += `
+                <div>
+                    <h3 class="text-lg font-black text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 theme-text"></i> 今日個人紀錄</h3>
+                    ${state.data.userOrders.length === 0 ? 
+                        `<div class="bg-white p-6 rounded-2xl border border-slate-100 text-center text-slate-400 text-sm shadow-sm">今天還沒有培育任何餐點喔！</div>` : 
+                        `<div class="space-y-3">
+                            ${state.data.userOrders.map(order => `
+                                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+                                    ${order['繳費情形'] === '已繳費' ? `<div class="absolute top-0 right-0 w-2 h-full bg-emerald-400"></div>` : `<div class="absolute top-0 right-0 w-2 h-full bg-amber-400"></div>`}
+                                    <h4 class="font-bold text-slate-800 mb-1">${order['品項']} <span class="text-xs text-slate-500 font-normal">x${order['數量']}</span></h4>
+                                    <p class="text-xs text-slate-500 mb-2">${order['店家']} ${order['規格']||order['訂購內容'] ? `· ${order['規格']||order['訂購內容']}` : ''}</p>
+                                    <div class="flex justify-between items-end mt-3">
+                                        <div class="flex gap-2">
+                                            <span class="text-[10px] font-bold px-2 py-1 rounded ${order['繳費情形'] === '已繳費' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${order['繳費情形'] || '未繳費'}</span>
+                                            <span class="text-[10px] font-bold px-2 py-1 rounded ${order['取餐情形'] === '已取餐' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">${order['取餐情形'] || '未取餐'}</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-black text-slate-800 leading-none">$${order['小計']}</p>
+                                        </div>
+                                    </div>
+                                    ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? 
+                                        `<button onclick="deleteOrder('${order['訂單編號']}')" class="absolute top-3 right-4 text-slate-300 hover:text-red-500"><i data-lucide="x-circle" class="w-5 h-5"></i></button>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>`
+                    }
+                </div>`;
+
+            // 指揮官控制台
+            if (state.user.role === '管理') {
+                html += `
+                <div class="mt-8 pt-6 border-t-2 border-dashed border-slate-200">
+                    <h3 class="text-xl font-black text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="command" class="w-6 h-6 theme-text"></i> 指揮官控制台</h3>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+                            <div class="w-10 h-10 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-5 h-5 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm">發餐與核銷檯</span>
+                        </button>
+                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+                            <div class="w-10 h-10 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-5 h-5 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm">實戰訂購清單</span>
+                        </button>
+                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform col-span-2">
+                            <div class="w-10 h-10 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-5 h-5 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm">基地系統設定</span>
+                        </button>
+                    </div>
+                </div>`;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        async function deleteOrder(id) {
+            showLoading('正在取消派遣...');
+            const res = await apiCall('deleteOrder', { orderId: id });
+            if (res) {
+                showAlert(res);
+                loadInitialData();
+            }
+        }
+
+        // ==========================================
+        // 指揮官功能: 獲取資料
+        // ==========================================
+        async function fetchAdminData(viewType) {
+            showLoading('讀取物資報告中...');
+            const res = await apiCall('adminGetTodayData');
+            hideLoading();
+            if (res) {
+                const container = document.getElementById('mainContent');
+                if (viewType === 'dashboard') renderAdminDashboard(container, res.summaryByUser);
+                if (viewType === 'list') renderAdminOrderList(container, res.summaryByShop);
+            }
+        }
+
+        // ==========================================
+        // 指揮官功能: 發餐與核銷檯 (高效率版)
+        // ==========================================
+        function renderAdminDashboard(container, summaryByUser) {
+            let html = `
+            <div class="p-4 pb-safe bg-slate-50 min-h-full">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="switchTab('profile')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <h2 class="text-xl font-black text-slate-800">發餐與核銷檯</h2>
+                </div>`;
+
+            if (summaryByUser.length === 0) {
+                html += `<div class="text-center text-slate-500 mt-10">今日尚無物資紀錄</div>`;
+            } else {
+                summaryByUser.forEach(user => {
+                    const isAllDone = user.paid && user.taken;
+                    html += `
+                    <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-5 mb-4 relative overflow-hidden transition-colors">
+                        ${isAllDone ? `<div class="absolute top-0 right-0 w-16 h-16 bg-emerald-100 rounded-bl-full flex items-start justify-end p-3"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i></div>` : ''}
+                        
+                        <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-xl font-black text-slate-800">${user.name}</h3>
+                            <div class="text-right">
+                                <p class="text-[10px] text-slate-400 font-bold mb-0.5">應收總計</p>
+                                <p class="text-2xl font-black theme-text leading-none">$${user.total}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4">`;
+
+                    user.orders.forEach(order => {
+                        const oId = order['訂單編號'];
+                        const isPaid = (order['繳費狀態'] || order['繳費情形']) === '已繳費';
+                        const isTaken = (order['取餐狀態'] || order['取餐情形']) === '已取餐';
+                        
+                        html += `
+                            <div class="flex flex-col gap-2 p-3 bg-slate-50 rounded-2xl">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-[10px] font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded mr-1">${order['店家']}</span>
+                                        <span class="font-bold text-slate-700 text-sm">${order['品項']} x${order['數量']}</span>
+                                        ${order['規格']||order['訂購內容'] ? `<p class="text-xs text-slate-500 mt-0.5">${order['規格']||order['訂購內容']}</p>` : ''}
+                                    </div>
+                                    <span class="font-bold text-slate-700">$${order['小計']}</span>
+                                </div>
+                                <div class="flex gap-2 mt-1">
+                                    <button onclick="adminQuickUpdate('${oId}', 'pay', '${isPaid ? '未繳費' : '已繳費'}', this)" 
+                                        class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${isPaid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">
+                                        <i data-lucide="dollar-sign" class="w-3 h-3"></i> ${isPaid ? '已收錢' : '收錢'}
+                                    </button>
+                                    <button onclick="adminQuickUpdate('${oId}', 'take', '${isTaken ? '未取餐' : '已取餐'}', this)" 
+                                        class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${isTaken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">
+                                        <i data-lucide="coffee" class="w-3 h-3"></i> ${isTaken ? '已給餐' : '給餐'}
+                                    </button>
+                                </div>
+                            </div>`;
+                    });
+                    html += `</div></div>`;
+                });
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // 單項快速更新 (不重刷整個畫面，提升體驗)
+        async function adminQuickUpdate(orderId, type, status, btnElement) {
+            // UI 先行變更 (樂觀更新)
+            const originalClass = btnElement.className;
+            const originalText = btnElement.innerHTML;
+            btnElement.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 bg-slate-100 text-slate-400';
+            btnElement.innerHTML = '<i class="lucide-loader w-3 h-3 animate-spin"></i> 處理中';
+
+            const res = await apiCall('adminUpdateStatus', { orderIds: [orderId], type, status });
+            
+            if (res) {
+                // 成功後重新抓取資料渲染，確保數據一致性 (背景執行)
+                fetchAdminData('dashboard'); 
+            } else {
+                // 失敗恢復原狀
+                btnElement.className = originalClass;
+                btnElement.innerHTML = originalText;
+            }
+        }
+
+        // ==========================================
+        // 指揮官功能: 實戰訂購清單 (電話叫餐)
+        // ==========================================
+        function renderAdminOrderList(container, summaryByShop) {
+            let html = `
+            <div class="p-4 pb-safe bg-slate-50 min-h-full">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="switchTab('profile')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <h2 class="text-xl font-black text-slate-800">實戰訂購清單</h2>
+                </div>`;
+
+            const shops = Object.keys(summaryByShop);
+            if (shops.length === 0) {
+                html += `<div class="text-center text-slate-500 mt-10">今日尚無訂單</div>`;
+            } else {
+                shops.forEach(shop => {
+                    const shopData = summaryByShop[shop];
+                    const phone = state.data.shopPhones[shop] || '';
+                    
+                    html += `
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-5">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+                            <h3 class="text-xl font-black text-slate-800 bg-slate-100 px-3 py-1 rounded-lg">${shop}</h3>
+                            ${phone ? `
+                                <a href="tel:${phone}" class="flex items-center gap-1 bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl active:scale-95 transition-transform">
+                                    <i data-lucide="phone" class="w-3 h-3"></i> 撥打: ${phone}
+                                </a>` : '<span class="text-xs text-slate-400">無電話資料</span>'}
+                        </div>
+                        
+                        <div class="space-y-3 mb-4">`;
+                    
+                    for (let itemName in shopData.items) {
+                        const item = shopData.items[itemName];
+                        html += `
+                            <div class="flex justify-between items-start border-b border-slate-50 pb-2">
+                                <div class="pr-3">
+                                    <p class="font-bold text-slate-700 text-sm leading-snug">${itemName}</p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <p class="font-black theme-text">共 ${item.count} 份</p>
+                                    <p class="text-xs text-slate-400 font-bold">$${item.subtotal}</p>
+                                </div>
+                            </div>`;
+                    }
+
+                    html += `
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3 flex justify-between items-center">
+                            <span class="text-sm font-bold text-slate-500">此店家訂購總額</span>
+                            <span class="text-xl font-black theme-text">$${shopData.totalAmount}</span>
+                        </div>
+                    </div>`;
+                });
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 指揮官功能: 基地系統設定
+        // ==========================================
+        function renderAdminSettings() {
+            const container = document.getElementById('mainContent');
+            let html = `
+            <div class="p-4 pb-safe bg-slate-50 min-h-full">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="switchTab('profile')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <h2 class="text-xl font-black text-slate-800">基地系統設定</h2>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-5">
+                    <h3 class="font-bold text-slate-800 mb-4 border-l-4 border-[#006241] pl-2">營運開關</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm font-bold text-slate-600">開放點餐</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="setIsOpen" class="sr-only peer" ${state.system.isOpen ? 'checked' : ''}>
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006241]"></div>
+                        </label>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">今日開放店家 (多間用逗號隔開)</label>
+                        <input type="text" id="setOpenedShops" value="${state.system.openedShops.join(',')}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">點餐截止時間 (例如: 10:30)</label>
+                        <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                    </div>
+                    <button onclick="saveSystemSettings()" class="w-full theme-green text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">儲存系統設定</button>
+                </div>
+
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-5">
+                    <h3 class="font-bold text-slate-800 mb-4 border-l-4 border-[#006241] pl-2">更新店家資訊</h3>
+                    <div class="space-y-4">
+                        <select id="updateShopName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                            <option value="">-- 選擇店家 --</option>
+                            ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
+                        </select>
+                        <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                        <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-[#006241] outline-none">
+                        <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">更新店家資料</button>
+                    </div>
+                </div>
+
+                <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8">
+                    <i data-lucide="archive" class="w-5 h-5"></i> 執行日落打烊與封存
+                </button>
+            </div>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        async function saveSystemSettings() {
+            const data = {
+                isOpen: document.getElementById('setIsOpen').checked,
+                openedShops: document.getElementById('setOpenedShops').value.split(',').map(s=>s.trim()).filter(s=>s),
+                deadline: document.getElementById('setDeadline').value
+            };
+            showLoading('更新設定中...');
+            const res = await apiCall('adminUpdateSystemSettings', data);
+            if (res) { showAlert(res); loadInitialData(); }
+        }
+
+        async function updateShopInfo() {
+            const shop = document.getElementById('updateShopName').value;
+            const imageUrl = document.getElementById('updateShopImg').value.trim();
+            const phone = document.getElementById('updateShopPhone').value.trim();
+            if (!shop) return showAlert('請選擇店家');
+            showLoading('更新店家資料中...');
+            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone });
+            if (res) { showAlert(res); loadInitialData(); }
+        }
+
+        async function adminCloseAndArchive() {
+            if (!confirm('確定要執行日落打烊嗎？這將會把今日紀錄封存並關閉點餐。')) return;
+            showLoading('皮克敏正在封存物資紀錄...');
+            const res = await apiCall('adminCloseAndArchive');
+            if (res) { showAlert(res); loadInitialData(); }
+        }
+
+        // ==========================================
+        // 圖片縮放工具 (Panzoom) 記憶體優化版
+        // ==========================================
+        function openLightbox(url) {
             const lightbox = document.getElementById('lightbox');
-            const img = document.getElementById('lightboxImg');
+            const img = document.getElementById('lightbox-img');
             const container = document.getElementById('panzoom-container');
             
             img.src = url;
@@ -327,1019 +1099,22 @@
             setTimeout(() => {
                 if (pzInstance) pzInstance.destroy();
                 pzInstance = Panzoom(img, {
-                    maxScale: 6, 
-                    minScale: 0.1, // 允許縮得更小
-                    contain: 'outside', 
-                    step: 0.3,
-                    cursor: 'move'
+                    maxScale: 6, minScale: 0.5, contain: 'outside', step: 0.3
                 });
                 
-                if (pzWheelHandler) {
-                    container.removeEventListener('wheel', pzWheelHandler);
-                }
-                // 綁定滑鼠滾輪縮放
-                pzWheelHandler = function(event) {
-                    // 防止頁面跟著捲動
-                    event.preventDefault();
-                    pzInstance.zoomWithWheel(event);
-                };
-                container.addEventListener('wheel', pzWheelHandler, { passive: false });
+                // 確實移除舊事件避免疊加
+                if (pzWheelHandler) container.removeEventListener('wheel', pzWheelHandler);
+                pzWheelHandler = pzInstance.zoomWithWheel;
+                container.addEventListener('wheel', pzWheelHandler);
             }, 100);
         }
 
         function closeLightbox() {
             document.getElementById('lightbox').classList.add('hidden');
-            document.getElementById('lightboxImg').src = '';
-            if(pzInstance) {
+            if (pzInstance) {
                 pzInstance.reset();
             }
         }
-
-        // --- 空狀態 (Empty State) 產生器 ---
-        function getEmptyStateHtml(message, iconSvg) {
-            return `
-            <div class="flex flex-col items-center justify-center h-72 text-gray-400 mt-8">
-                <div class="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border-4 border-brand-light relative">
-                    ${iconSvg}
-                    <div class="absolute -bottom-2 w-16 h-4 bg-gray-200 rounded-[100%] opacity-50 filter blur-sm"></div>
-                </div>
-                <p class="text-xl font-black text-gray-500">${message}</p>
-            </div>`;
-        }
-
-        async function apiCall(action, data = {}) {
-            try {
-                // 修正 CORS 錯誤的關鍵：不傳 headers, 使用 text/plain (GAS 預設接受), redirect follow
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    redirect: 'follow',
-                    body: JSON.stringify({ action, token: state.token, data })
-                });
-                const res = await response.json();
-                if (res.status === 'error') {
-                    if (res.message.includes('過期')) logout();
-                    throw new Error(res.message);
-                }
-                return res.data;
-            } catch (error) {
-                console.error('API Error:', error);
-                showAlert(error.message || '無法連接到伺服器，請檢查網路狀態。', '連線中斷');
-                return null;
-            }
-        }
-
-        // --- 核心邏輯 ---
-        function checkIsPastDeadline() {
-            if (!state.system.deadline) return false;
-            const now = new Date();
-            const [hours, minutes] = state.system.deadline.split(':').map(Number);
-            const deadlineDate = new Date();
-            deadlineDate.setHours(hours, minutes, 0, 0);
-            return now > deadlineDate;
-        }
-
-        async function init() {
-            if (state.token) {
-                showLoading('正在集結皮客覓小隊...');
-                const initialData = await apiCall('getInitialData');
-                hideLoading();
-                if (initialData) {
-                    const savedUser = JSON.parse(localStorage.getItem('userMeta'));
-                    if(savedUser) {
-                        state.user = savedUser;
-                        applyInitialData(initialData);
-                        renderApp();
-                    } else {
-                        logout();
-                    }
-                }
-            }
-        }
-
-        async function doLogin() {
-            const username = document.getElementById('loginUser').value.trim();
-            const password = document.getElementById('loginPass').value.trim();
-            const name = document.getElementById('loginName').value.trim();
-            
-            if (!username || !password) return showAlert('請輸入完整的帳號與通關密碼。', '資料不全');
-            
-            showLoading('驗證探險家身分中...');
-            const res = await apiCall('login', { username, password, name });
-            hideLoading();
-            
-            if (res) {
-                state.token = res.token;
-                state.user = res.user;
-                localStorage.setItem('sessionToken', res.token);
-                localStorage.setItem('userMeta', JSON.stringify(res.user));
-                applyInitialData(res.initialData);
-                renderApp();
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('sessionToken');
-            localStorage.removeItem('userMeta');
-            location.reload();
-        }
-
-        function applyInitialData(data) {
-            state.system = data.systemStatus;
-            state.allShops = data.allShops || []; 
-            state.menuData = data.menuData;
-            state.shopImages = data.shopImages;
-            state.shopPhones = data.shopPhones || {};
-            state.userOrders = data.userOrders;
-            
-            if(state.system.openedShops.length > 0 && !state.system.openedShops.includes(state.activeShop)) {
-                state.activeShop = state.system.openedShops[0];
-            }
-        }
-
-        function renderApp() {
-            document.getElementById('viewLogin').classList.add('hidden');
-            const mainView = document.getElementById('viewMain');
-            mainView.classList.remove('hidden');
-            mainView.classList.add('flex');
-            
-            // 皮克敏風格問候語
-            const hour = new Date().getHours();
-            const roleStr = state.user.role === '管理' ? '指揮官' : '探險家';
-            const nameStr = `<span class="text-2xl font-black tracking-wide">${state.user.name} <span class="text-sm font-bold opacity-80">${roleStr}</span></span>`;
-            let greeting = '';
-            
-            if (hour >= 5 && hour < 11) {
-                const msgs = ['早安！尋覓美味的早餐，準備出發吧！', '太陽升起，是時候集結物資了！'];
-                greeting = `<p class="text-xs font-bold text-brand-light mb-0.5 opacity-90 uppercase tracking-widest">Good Morning</p>${nameStr}<p class="text-sm font-medium text-white/90 mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
-            } else if (hour >= 11 && hour < 14) {
-                const msgs = ['午餐時間！補充能量才能繼續探險。', '肚子餓了嗎？趕快派遣皮客覓去採集！'];
-                greeting = `<p class="text-xs font-bold text-brand-light mb-0.5 opacity-90 uppercase tracking-widest">Good Afternoon</p>${nameStr}<p class="text-sm font-medium text-white/90 mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
-            } else if (hour >= 14 && hour < 18) {
-                const msgs = ['下午茶時間！尋覓一點甜甜的能量吧！'];
-                greeting = `<p class="text-xs font-bold text-brand-light mb-0.5 opacity-90 uppercase tracking-widest">Tea Time</p>${nameStr}<p class="text-sm font-medium text-white/90 mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
-            } else {
-                const msgs = ['夜深了，整理今日的豐收物資吧！'];
-                greeting = `<p class="text-xs font-bold text-brand-light mb-0.5 opacity-90 uppercase tracking-widest">Good Evening</p>${nameStr}<p class="text-sm font-medium text-white/90 mt-1.5">${msgs[Math.floor(Math.random()*msgs.length)]}</p>`;
-            }
-            document.getElementById('greetingText').innerHTML = greeting;
-
-            if (state.user.role === '管理') {
-                document.getElementById('nav-admin').classList.remove('hidden');
-                document.getElementById('nav-admin').classList.add('flex');
-            }
-            
-            switchTab('menu');
-        }
-
-        function switchTab(tab) {
-            state.currentTab = tab;
-            ['menu', 'cart', 'orders', 'admin'].forEach(t => {
-                const el = document.getElementById(`nav-${t}`);
-                if(el) {
-                    if(t === tab) {
-                        el.classList.remove('text-gray-400');
-                        el.classList.add(t==='admin' ? 'text-[var(--pik-blue)]' : 'text-brand');
-                    } else {
-                        el.classList.add('text-gray-400');
-                        el.classList.remove('text-brand', 'text-[var(--pik-blue)]');
-                    }
-                }
-            });
-
-            const content = document.getElementById('mainContent');
-            content.innerHTML = ''; 
-
-            if (tab === 'menu') renderMenuTab(content);
-            else if (tab === 'cart') renderCartTab(content);
-            else if (tab === 'orders') renderOrdersTab(content);
-            else if (tab === 'admin' && state.user.role === '管理') renderAdminTab(content);
-            
-            window.scrollTo(0,0);
-        }
-
-        function renderMenuTab(container) {
-            if (!state.system.isOpen) {
-                container.innerHTML = getEmptyStateHtml('日落了，皮客覓已停止採集', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>`);
-                return;
-            }
-            if (state.system.openedShops.length === 0) {
-                 container.innerHTML = getEmptyStateHtml('今天尚未發現任何物資點', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>`);
-                 return;
-            }
-
-            let html = '';
-
-            // 1. 頂部資訊區 (截止時間 & 呼叫支援代點)
-            let deadlineHtml = '';
-            if (state.system.deadline) {
-                const isPast = checkIsPastDeadline();
-                const color = isPast ? 'bg-red-100 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200';
-                const text = isPast ? '已截止採集' : `今日採集截止：${state.system.deadline}`;
-                deadlineHtml = `
-                <div class="mb-4 flex items-center justify-center p-3 rounded-xl border ${color} shadow-sm font-bold">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    ${text}
-                </div>`;
-            }
-
-            let proxyHtml = '';
-            if (state.user.role === '管理') {
-                proxyHtml = `
-                <div class="mb-4 bg-blue-50/50 p-4 rounded-2xl border-2 border-blue-100 flex flex-col gap-2 relative overflow-hidden group">
-                    <div class="absolute -right-4 -top-4 text-blue-100 opacity-50 transform rotate-12 group-hover:scale-110 transition"><svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 4 6 4 10c0 2.5 1 4.5 2.5 6.5C8 18.5 11 22 12 22c1 0 4-3.5 5.5-5.5C19 14.5 20 12.5 20 10c0-4-3-8-8-8zm0 18c-1-1.5-3-4-4-5.5C6.5 13 6 11.5 6 10c0-3 2-6 6-6s6 3 6 6c0 1.5-.5 3-2 4.5-1 1.5-3 4-4 5.5z"/></svg></div>
-                    <label class="font-black text-[var(--pik-blue)] text-sm flex items-center gap-1.5 z-10 uppercase tracking-widest">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        呼叫支援 (指揮官代點)
-                    </label>
-                    <input type="text" id="proxyNameInput" value="${state.proxyName}" onchange="state.proxyName = this.value" class="w-full p-3 rounded-xl border-none focus:ring-2 focus:ring-[var(--pik-blue)] bg-white font-bold text-lg shadow-sm z-10 text-blue-900 placeholder-blue-300" placeholder="輸入隊員姓名 (留空則為自己)">
-                </div>`;
-            }
-
-            html += deadlineHtml + proxyHtml;
-
-            // 2. 店家切換 Tab
-            html += `<div class="flex overflow-x-auto space-x-3 pb-4 mb-2 no-scrollbar px-1">`;
-            state.system.openedShops.forEach(shop => {
-                const isActive = shop === state.activeShop;
-                const activeCls = isActive ? 'bg-gray-800 text-white shadow-md border-gray-800' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-800';
-                html += `<button onclick="state.activeShop='${shop}'; switchTab('menu')" class="whitespace-nowrap px-6 py-2.5 rounded-full font-black text-lg transition-all border-2 ${activeCls}">${shop}</button>`;
-            });
-            html += `</div>`;
-
-            // 3. 店家資訊與大圖預覽
-            const shopImg = state.shopImages[state.activeShop];
-            const shopPhone = state.shopPhones[state.activeShop];
-            
-            html += `<div class="flex items-center justify-between mb-4 px-2">
-                        <h2 class="text-2xl font-black text-gray-800 tracking-tight">${state.activeShop}</h2>
-                        ${shopPhone ? `<a href="tel:${shopPhone}" class="text-sm font-bold text-brand bg-brand-light px-3 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-green-200 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>${shopPhone}</a>` : ''}
-                     </div>`;
-
-            if(shopImg) {
-                html += `
-                <div class="mb-6 rounded-[1.5rem] overflow-hidden shadow-sm relative cursor-pointer group border-4 border-white bg-gray-100 h-40" onclick="showLightbox('${shopImg}')">
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition backdrop-blur-sm z-10">
-                        <span class="bg-white text-gray-800 px-5 py-2.5 rounded-full font-black shadow-xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                            檢視情報圖
-                        </span>
-                    </div>
-                    <img src="${shopImg}" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500" alt="菜單預覽">
-                </div>`;
-            }
-
-            // 4. 菜單清單 (手風琴分類)
-            const menu = state.menuData[state.activeShop] || [];
-            const categorizedMenu = {};
-            
-            // 分類資料
-            menu.forEach((item, idx) => {
-                const cat = item['類別'] || '未分類';
-                if (!categorizedMenu[cat]) categorizedMenu[cat] = [];
-                categorizedMenu[cat].push({ item, idx });
-            });
-
-            html += `<div class="space-y-4 pb-6">`;
-            let isFirst = true;
-            for (const category in categorizedMenu) {
-                const expandedCls = isFirst ? 'expanded' : '';
-                html += `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden accordion-group ${expandedCls}">
-                    <button class="w-full flex justify-between items-center p-5 bg-gray-50 hover:bg-gray-100 transition" onclick="toggleAccordion(this)">
-                        <div class="flex items-center gap-3">
-                            <div class="w-1 h-6 bg-brand rounded-full"></div>
-                            <h3 class="text-xl font-black text-gray-800">${category}</h3>
-                            <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">${categorizedMenu[category].length}</span>
-                        </div>
-                        <svg class="w-6 h-6 text-gray-400 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>
-                    <div class="accordion-content bg-white">
-                        <div class="p-2 space-y-1">`;
-                
-                categorizedMenu[category].forEach(({ item, idx }) => {
-                    // 智慧尋找展示單價
-                    let displayPrice = '';
-                    if (item['單價']) displayPrice = `$${item['單價']}`;
-                    else {
-                        const exclude = ['類別', '品項', '甜度選項', '冰塊選項', '口味與客製化', '附餐飲料', '_originalIndex'];
-                        const priceKeys = Object.keys(item).filter(k => !exclude.includes(k) && item[k] !== '');
-                        if(priceKeys.length > 0) displayPrice = `自 $${item[priceKeys[0]]} 起`;
-                    }
-
-                    html += `
-                    <div class="flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors p-3 rounded-xl group" onclick="openConfigModal(${idx})">
-                        <div class="pr-4 flex-1">
-                            <h4 class="text-[1.1rem] font-bold text-gray-800 leading-tight group-hover:text-brand transition">${item['品項']}</h4>
-                            <p class="text-brand font-black mt-1 text-base opacity-90">${displayPrice}</p>
-                        </div>
-                        <div class="bg-gray-100 text-brand rounded-xl w-10 h-10 flex-shrink-0 flex items-center justify-center font-bold text-xl group-hover:bg-brand group-hover:text-white transition shadow-sm">+</div>
-                    </div>`;
-                });
-                
-                html += `       </div>
-                    </div>
-                </div>`;
-                isFirst = false;
-            }
-            html += `</div>`;
-            container.innerHTML = html;
-        }
-
-        // 手風琴開關邏輯
-        window.toggleAccordion = function(btn) {
-            const group = btn.closest('.accordion-group');
-            group.classList.toggle('expanded');
-        };
-
-        
-        // 輔助函式：解析加價字串 (例如：可樂(大)+5 或 +$6換麻辣麵線)
-        function parseOptionString(str) {
-            if (!str) return [];
-            return String(str).split('/').map(opt => {
-                let name = opt.trim();
-                let price = 0;
-                // 正則匹配 +$數字 或 +數字
-                const match = name.match(/\+\$?\s*(\d+)/);
-                if (match) {
-                    price = parseInt(match[1], 10);
-                    // 從原本的名字中移除加價字串，保持乾淨
-                    name = name.replace(match[0], '').trim();
-                }
-                return { label: name, price: price, original: opt.trim() };
-            });
-        }
-
-        function openConfigModal(itemIndex) {
-            const item = state.menuData[state.activeShop][itemIndex];
-            
-            // 初始化暫存物件
-            state.tempItem = {
-                shop: state.activeShop,
-                name: item['品項'],
-                basePrice: 0, 
-                selectedSizeName: '',
-                selections: {}, 
-                quantity: 1,
-                name_override: state.proxyName || '' 
-            };
-
-            document.getElementById('cfgName').innerText = state.tempItem.name;
-            document.getElementById('cfgQty').innerText = '1';
-            
-            const cfgOptions = document.getElementById('cfgOptions');
-            let optionsHtml = '';
-
-            // 定義排除欄位 (剩餘的就是尺寸/基本價位選項)
-            const excludeKeys = ['類別', '品項', '單價', '甜度選項', '冰塊選項', '口味與客製化', '附餐飲料', '_originalIndex'];
-            const sizeKeys = Object.keys(item).filter(k => !excludeKeys.includes(k) && item[k] !== '');
-
-            // 1. 基本定價邏輯 (判斷是單一價格還是分尺寸)
-            if (item['單價'] && item['單價'] !== '') {
-                // 單一價格模式 (如丹丹、梁社漢)
-                state.tempItem.basePrice = parseInt(item['單價'], 10) || 0;
-                state.tempItem.selectedSizeName = ''; // 不特別顯示尺寸
-            } else if (sizeKeys.length > 0) {
-                // 多尺寸模式 (如50嵐、麻古)
-                const sizeOpts = sizeKeys.map(k => ({ label: k, price: parseInt(item[k], 10) || 0 }));
-                optionsHtml += buildRadioGroup('選擇規格', 'size', sizeOpts);
-                state.tempItem.selectedSizeName = sizeOpts[0].label;
-                state.tempItem.basePrice = sizeOpts[0].price;
-            } else {
-                state.tempItem.basePrice = 0; // 容錯
-            }
-
-            // 2. 甜度選項
-            if (item['甜度選項'] && item['甜度選項'] !== '甜度固定') {
-                const parsed = parseOptionString(item['甜度選項']);
-                optionsHtml += buildRadioGroup('甜度', 'sweet', parsed);
-                state.tempItem.selections['sweet'] = parsed[0].label;
-            } else if (item['甜度選項'] === '甜度固定') {
-                state.tempItem.selections['sweet'] = '甜度固定';
-            }
-
-            // 3. 冰塊選項
-            if (item['冰塊選項'] && !item['冰塊選項'].includes('固定')) {
-                const parsed = parseOptionString(item['冰塊選項']);
-                optionsHtml += buildRadioGroup('溫度/冰塊', 'ice', parsed);
-                state.tempItem.selections['ice'] = parsed[0].label;
-            } else if (item['冰塊選項'] && item['冰塊選項'].includes('固定')) {
-                state.tempItem.selections['ice'] = item['冰塊選項'];
-            }
-
-            // 4. 客製化選擇 (口味、飯麵切換等)
-            if (item['口味與客製化']) {
-                 const parsed = parseOptionString(item['口味與客製化']);
-                 optionsHtml += buildRadioGroup('客製化選擇', 'custom', parsed);
-                 state.tempItem.selections['custom'] = parsed[0].label;
-                 state.tempItem._customPrice = parsed[0].price || 0;
-            }
-
-            // 5. 附餐飲料 (渲染成下拉選單，並格式化文字)
-            if (item['附餐飲料']) {
-                const parsed = parseOptionString(item['附餐飲料']);
-                
-                optionsHtml += `
-                <div class="bg-gray-50/80 p-5 rounded-[1.5rem] border border-gray-200">
-                    <h5 class="font-black text-gray-800 text-lg mb-3 flex items-center gap-2">
-                        <span class="w-2 h-2 bg-[var(--pik-yellow)] rounded-full"></span>
-                        選擇附餐
-                    </h5>
-                    <div class="relative">
-                        <select id="cfg-drink" class="w-full text-lg p-4 font-bold bg-white appearance-none border-2 border-gray-200 rounded-xl focus:border-brand shadow-sm pr-10" onchange="updateCfgSelection('drink', this.value)">
-                            ${parsed.map((p, i) => {
-                                const priceText = p.price > 0 ? ` (+$${p.price})` : '';
-                                return `<option value="${i}">${p.label}${priceText}</option>`;
-                            }).join('')}
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                            <svg class="fill-current h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
-                    </div>
-                </div>`;
-                state.tempItem.selections['drink'] = parsed[0].label;
-                state.tempItem._drinkPrice = parsed[0].price || 0;
-                state.tempItem._drinkOptions = parsed; 
-            }
-
-            cfgOptions.innerHTML = optionsHtml;
-            updateCfgTotal();
-
-            const modal = document.getElementById('configModal');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                document.getElementById('configModalContent').classList.remove('translate-y-full');
-            }, 10);
-        }
-
-        function buildRadioGroup(title, groupName, options) {
-            let html = `
-            <div class="mb-2">
-                <h5 class="font-black text-gray-800 text-lg mb-3 flex items-center gap-2">
-                    <span class="w-2 h-2 bg-brand rounded-full"></span>
-                    ${title}
-                </h5>
-                <div class="flex flex-wrap gap-2.5">`;
-            options.forEach((opt, idx) => {
-                const checked = idx === 0 ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300';
-                const priceTxt = opt.price ? `<span class="text-sm font-bold opacity-80 ml-1 bg-black/10 px-1.5 py-0.5 rounded">+$${opt.price}</span>` : '';
-                html += `
-                <button id="btn-${groupName}-${idx}" 
-                    onclick="updateCfgSelection('${groupName}', ${idx}, '${opt.label}', ${opt.price||0}, ${options.length})"
-                    class="border-2 rounded-xl px-4 py-2 font-bold text-base transition-all active:scale-95 flex items-center justify-center ${checked}">
-                    ${opt.label} ${priceTxt}
-                </button>`;
-            });
-            html += `</div></div>`;
-            return html;
-        }
-
-        function updateCfgSelection(group, idx, label, price, totalOpts) {
-            if (group === 'drink') {
-                const opt = state.tempItem._drinkOptions[idx];
-                state.tempItem.selections['drink'] = opt.label;
-                state.tempItem._drinkPrice = opt.price || 0;
-            } else {
-                for(let i=0; i<totalOpts; i++){
-                    const btn = document.getElementById(`btn-${group}-${i}`);
-                    if(btn) {
-                        btn.classList.remove('bg-brand', 'text-white', 'border-brand', 'shadow-md');
-                        btn.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
-                    }
-                }
-                const activeBtn = document.getElementById(`btn-${group}-${idx}`);
-                activeBtn.classList.add('bg-brand', 'text-white', 'border-brand', 'shadow-md');
-                activeBtn.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
-
-                if (group === 'size') {
-                    state.tempItem.selectedSizeName = label;
-                    state.tempItem.basePrice = price;
-                } else {
-                    state.tempItem.selections[group] = label;
-                    if(group === 'custom') state.tempItem._customPrice = price || 0;
-                }
-            }
-            updateCfgTotal();
-        }
-
-        function adjQty(delta) {
-            state.tempItem.quantity += delta;
-            if (state.tempItem.quantity < 1) state.tempItem.quantity = 1;
-            document.getElementById('cfgQty').innerText = state.tempItem.quantity;
-            updateCfgTotal();
-        }
-
-        function updateCfgTotal() {
-            let unitPrice = state.tempItem.basePrice 
-                          + (state.tempItem._drinkPrice || 0)
-                          + (state.tempItem._customPrice || 0);
-            
-            let total = unitPrice * state.tempItem.quantity;
-            document.getElementById('cfgPriceBase').innerText = `$${unitPrice}`;
-            document.getElementById('cfgTotal').innerText = `$${total}`;
-        }
-
-        function closeConfig() {
-            const modal = document.getElementById('configModal');
-            document.getElementById('configModalContent').classList.add('translate-y-full');
-            modal.classList.add('opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        function confirmAddToCart() {
-            let specArr = [];
-            if(state.tempItem.selectedSizeName) specArr.push(state.tempItem.selectedSizeName);
-            if(state.tempItem.selections.sweet && state.tempItem.selections.sweet !== '甜度固定') specArr.push(state.tempItem.selections.sweet);
-            if(state.tempItem.selections.ice && !state.tempItem.selections.ice.includes('固定')) specArr.push(state.tempItem.selections.ice);
-            if(state.tempItem.selections.custom) specArr.push(state.tempItem.selections.custom);
-            if(state.tempItem.selections.drink) specArr.push(`附: ${state.tempItem.selections.drink}`);
-
-            let unitPrice = state.tempItem.basePrice 
-                          + (state.tempItem._drinkPrice || 0)
-                          + (state.tempItem._customPrice || 0);
-
-            const cartItem = {
-                shop: state.tempItem.shop,
-                name: state.tempItem.name,
-                spec: specArr.join(' / '),
-                price: unitPrice,
-                quantity: state.tempItem.quantity,
-                name_override: state.tempItem.name_override
-            };
-
-            state.cart.push(cartItem);
-            updateCartBadge();
-            closeConfig();
-            
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-
-        function updateCartBadge() {
-            const badge = document.getElementById('cartBadge');
-            if (state.cart.length > 0) {
-                badge.innerText = state.cart.length;
-                badge.classList.remove('hidden');
-                badge.classList.add('animate-bounce');
-                setTimeout(()=>badge.classList.remove('animate-bounce'), 1000);
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        function renderCartTab(container) {
-            if (state.cart.length === 0) {
-                container.innerHTML = getEmptyStateHtml('物資背包是空的，趕快去採集吧！', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>`);
-                return;
-            }
-
-            const isPast = checkIsPastDeadline();
-
-            let html = `<div class="flex items-center justify-between mb-6">
-                            <h2 class="text-2xl font-black text-gray-800 tracking-tight">物資清單</h2>
-                            ${isPast ? '<span class="text-xs font-bold bg-red-100 text-red-600 px-3 py-1 rounded-full">已超過派遣時間</span>' : ''}
-                        </div>
-                        <div class="space-y-4 pb-6">`;
-            let grandTotal = 0;
-
-            state.cart.forEach((item, idx) => {
-                const subTotal = item.price * item.quantity;
-                grandTotal += subTotal;
-                const nameTag = item.name_override ? `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded ml-2 font-bold shadow-sm uppercase">代: ${item.name_override}</span>` : '';
-                
-                html += `
-                <div class="card relative pr-12 border-2 border-transparent hover:border-brand-light">
-                    <button onclick="removeFromCart(${idx})" class="absolute top-1/2 -translate-y-1/2 right-4 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition bg-white shadow-sm border border-red-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
-                    <p class="text-xs font-black text-brand bg-brand-light px-2 py-0.5 rounded inline-block mb-2">${item.shop}</p>
-                    <h4 class="text-lg font-bold text-gray-800 leading-tight">${item.name} ${nameTag}</h4>
-                    <p class="text-gray-500 text-sm mt-1.5 leading-snug font-medium">${item.spec}</p>
-                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                        <p class="font-bold text-gray-500">$${item.price} <span class="mx-1 text-xs">x</span> ${item.quantity}</p>
-                        <p class="font-black text-brand text-xl">$${subTotal}</p>
-                    </div>
-                </div>`;
-            });
-
-            html += `
-                </div>
-                <div class="bg-white rounded-[2rem] p-6 border border-gray-200 mt-2 shadow-xl relative overflow-hidden">
-                    <div class="absolute -right-10 -bottom-10 opacity-5"><svg class="w-48 h-48" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 4 6 4 10c0 2.5 1 4.5 2.5 6.5C8 18.5 11 22 12 22c1 0 4-3.5 5.5-5.5C19 14.5 20 12.5 20 10c0-4-3-8-8-8z"/></svg></div>
-                    <div class="flex justify-between items-end mb-6 relative z-10">
-                        <span class="text-gray-500 font-bold text-sm uppercase tracking-widest">預計消耗能量</span>
-                        <span class="text-4xl font-black text-gray-800">$${grandTotal}</span>
-                    </div>
-                    <button onclick="submitOrder()" class="btn-primary py-4 text-xl shadow-lg relative z-10" ${isPast ? 'disabled' : ''}>
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        ${isPast ? '已過派遣時間' : '派遣皮客覓送出'}
-                    </button>
-                </div>`;
-            container.innerHTML = html;
-        }
-
-        function removeFromCart(idx) {
-            showAlert('確定要捨棄這項物資嗎？', '移除確認', [
-                { text: '保留', primary: false, action: 'closeAlert()' },
-                { text: '確定捨棄', primary: true, action: `executeRemove(${idx})` }
-            ]);
-        }
-        function executeRemove(idx) {
-            closeAlert();
-            state.cart.splice(idx, 1);
-            updateCartBadge();
-            renderCartTab(document.getElementById('mainContent'));
-        }
-
-        async function submitOrder() {
-            if (checkIsPastDeadline()) {
-                showAlert('已經超過今日採集截止時間，皮客覓無法出任務囉！', '任務超時');
-                renderCartTab(document.getElementById('mainContent')); 
-                return;
-            }
-
-            showLoading('皮客覓奮力搬運中...');
-            const res = await apiCall('submitOrder', state.cart);
-            if (res) {
-                state.cart = []; 
-                updateCartBadge();
-                const initialData = await apiCall('getInitialData');
-                if(initialData) applyInitialData(initialData);
-                hideLoading();
-                showAlert('物資清單已成功送出！請至「我的探險」查看狀態。', '任務成功');
-                switchTab('orders');
-            } else {
-                hideLoading();
-            }
-        }
-
-        function renderOrdersTab(container) {
-            if (state.userOrders.length === 0) {
-                container.innerHTML = getEmptyStateHtml('今日尚未派遣任何任務', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>`);
-                return;
-            }
-
-            let html = `<h2 class="text-2xl font-black text-gray-800 mb-6 tracking-tight">今日任務日誌</h2><div class="space-y-4 pb-6">`;
-            let grandTotal = 0;
-
-            state.userOrders.forEach(order => {
-                grandTotal += parseInt(order['小計'], 10);
-                
-                // 狀態樣式
-                const isPaid = order['繳費狀態'] === '已繳費' || order['繳費情形'] === '已繳費';
-                const isTaken = order['取餐狀態'] === '已取餐' || order['取餐情形'] === '已取餐';
-                
-                const paidHtml = `<span class="text-xs font-bold px-2.5 py-1 rounded-md border ${isPaid ? 'text-green-700 bg-green-50 border-green-200' : 'text-gray-500 bg-gray-50 border-gray-200'}">${isPaid ? '已付款' : '未付款'}</span>`;
-                const takeHtml = `<span class="text-xs font-bold px-2.5 py-1 rounded-md border ${isTaken ? 'text-[var(--pik-blue)] bg-blue-50 border-blue-200' : 'text-gray-500 bg-gray-50 border-gray-200'}">${isTaken ? '已領取' : '未領取'}</span>`;
-
-                const deleteBtn = (state.system.isOpen && !isPaid && !isTaken) ? 
-                    `<button onclick="confirmDeleteOrder('${order['訂單編號']}')" class="text-sm text-red-400 hover:text-red-600 border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 transition active:scale-95 font-bold">撤回指令</button>` : '';
-
-                html += `
-                <div class="card p-5 border-2 border-transparent hover:border-gray-200">
-                    <div class="flex justify-between items-start mb-3">
-                        <p class="text-xs font-black text-white bg-gray-800 px-2 py-0.5 rounded tracking-wide">${order['店家']}</p>
-                        <div class="flex gap-1.5">${paidHtml}${takeHtml}</div>
-                    </div>
-                    <h4 class="text-lg font-bold text-gray-800 mb-1 leading-tight">${order['品項']}</h4>
-                    <p class="text-gray-500 text-sm leading-snug font-medium">${order['規格'] || order['訂購內容']}</p>
-                    <div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-100">
-                        <div class="flex flex-col gap-1">
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">數量</span>
-                            <span class="font-black text-xl text-gray-700">x${order['數量']}</span>
-                        </div>
-                        <div class="text-right flex flex-col items-end gap-2">
-                            <p class="font-black text-2xl text-brand">$${order['小計']}</p>
-                            ${deleteBtn}
-                        </div>
-                    </div>
-                </div>`;
-            });
-
-            html += `
-                </div>
-                <div class="mt-2 text-right bg-brand p-6 rounded-[2rem] shadow-lg text-white">
-                    <p class="text-brand-light text-sm font-bold mb-1 uppercase tracking-widest">今日應繳總額</p>
-                    <p class="text-5xl font-black">$${grandTotal}</p>
-                </div>`;
-            container.innerHTML = html;
-        }
-
-        function confirmDeleteOrder(orderId) {
-            showAlert('確定要撤回這筆訂單指令嗎？', '撤回確認', [
-                { text: '保留', primary: false, action: 'closeAlert()' },
-                { text: '確定撤回', primary: true, action: `executeDeleteOrder('${orderId}')` }
-            ]);
-        }
-
-        async function executeDeleteOrder(orderId) {
-            closeAlert();
-            showLoading('正在撤回指令...');
-            const res = await apiCall('deleteOrder', { orderId });
-            if (res) {
-                const initialData = await apiCall('getInitialData');
-                if(initialData) applyInitialData(initialData);
-                hideLoading();
-                showAlert('該項任務指令已成功撤回。', '任務更新');
-                switchTab('orders');
-            } else {
-                hideLoading();
-            }
-        }
-
-        function renderAdminTab(container) {
-            let shopChecksHtml = '';
-            state.allShops.forEach(shop => {
-                const isChecked = state.system.openedShops.includes(shop) ? 'checked' : '';
-                shopChecksHtml += `
-                <label class="flex items-center space-x-3 p-4 bg-white border-2 ${isChecked ? 'border-brand bg-brand-light/30' : 'border-gray-100'} rounded-2xl cursor-pointer transition shadow-sm hover:border-brand-light">
-                    <input type="checkbox" value="${shop}" class="shop-checkbox w-6 h-6 text-brand rounded focus:ring-brand" ${isChecked} onchange="this.closest('label').classList.toggle('border-brand'); this.closest('label').classList.toggle('border-gray-100'); this.closest('label').classList.toggle('bg-brand-light/30');">
-                    <span class="text-lg font-black text-gray-700">${shop}</span>
-                </label>`;
-            });
-
-            let html = `
-            <div class="space-y-6 pb-20">
-                <h2 class="text-2xl font-black text-gray-800 tracking-tight mb-6">指揮官控制台</h2>
-                
-                <!-- 開團設定 -->
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border-2 ${state.system.isOpen ? 'border-brand' : 'border-gray-200'}">
-                    <h3 class="text-xl font-black mb-5 flex items-center justify-between text-gray-800">
-                        <span>今日任務設定</span>
-                        <span class="text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${state.system.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
-                            ${state.system.isOpen ? '🟢 任務進行中' : '⚫ 任務停止'}
-                        </span>
-                    </h3>
-                    
-                    <div class="mb-5">
-                        <label class="block text-gray-500 font-bold mb-2 text-sm ml-1">勾選開放物資點 (店家)：</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            ${shopChecksHtml}
-                        </div>
-                    </div>
-
-                    <div class="mb-6">
-                        <label class="block text-gray-500 font-bold mb-2 text-sm ml-1">設定採集截止時間 (選填)：</label>
-                        <input type="time" id="adminDeadline" value="${state.system.deadline || ''}" class="font-bold text-lg p-3">
-                    </div>
-                    
-                    <div class="flex gap-3">
-                        <button onclick="saveAdminSettings(true)" class="flex-1 bg-brand text-white font-black py-4 rounded-xl shadow-md hover:bg-[#004d33] transition active:scale-95">發布任務 (開放)</button>
-                        <button onclick="saveAdminSettings(false)" class="flex-1 bg-gray-100 text-gray-600 font-black py-4 rounded-xl hover:bg-gray-200 transition active:scale-95">停止採集 (關閉)</button>
-                    </div>
-                </div>
-
-                <!-- 報表與打烊 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="openOrderList()" class="bg-white flex flex-col items-center justify-center p-6 rounded-[2rem] hover:shadow-lg transition group border-2 border-transparent hover:border-[var(--pik-yellow)] shadow-sm active:scale-95 relative overflow-hidden">
-                        <div class="absolute -right-4 -bottom-4 text-yellow-100 opacity-30 group-hover:scale-110 transition duration-500"><svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 4 6 4 10c0 2.5 1 4.5 2.5 6.5C8 18.5 11 22 12 22c1 0 4-3.5 5.5-5.5C19 14.5 20 12.5 20 10c0-4-3-8-8-8z"/></svg></div>
-                        <div class="w-14 h-14 bg-[var(--pik-yellow)] text-white rounded-2xl flex items-center justify-center mb-3 shadow-md rotate-3 group-hover:rotate-0 transition-transform relative z-10">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                        </div>
-                        <span class="font-black text-gray-800 text-lg relative z-10">訂購清單 (打電話)</span>
-                    </button>
-                    
-                    <button onclick="openDistributeDash()" class="bg-white flex flex-col items-center justify-center p-6 rounded-[2rem] hover:shadow-lg transition group border-2 border-transparent hover:border-[var(--pik-blue)] shadow-sm active:scale-95 relative overflow-hidden">
-                        <div class="absolute -right-4 -bottom-4 text-blue-50 opacity-50 group-hover:scale-110 transition duration-500"><svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C7 2 4 6 4 10c0 2.5 1 4.5 2.5 6.5C8 18.5 11 22 12 22c1 0 4-3.5 5.5-5.5C19 14.5 20 12.5 20 10c0-4-3-8-8-8z"/></svg></div>
-                        <div class="w-14 h-14 bg-[var(--pik-blue)] text-white rounded-2xl flex items-center justify-center mb-3 shadow-md -rotate-3 group-hover:rotate-0 transition-transform relative z-10">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                        </div>
-                        <span class="font-black text-gray-800 text-lg relative z-10">發餐核銷檯</span>
-                    </button>
-                </div>
-
-                <div class="bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <button onclick="confirmCloseAll()" class="w-full text-red-600 font-black py-3 flex justify-center items-center gap-2 hover:bg-red-100 rounded-xl transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        日落歸巢 (打烊並封存紀錄)
-                    </button>
-                </div>
-
-                <!-- 資訊維護 -->
-                <div class="bg-gray-50 border border-gray-200 p-6 rounded-[2rem]">
-                    <h3 class="text-lg font-black mb-1 text-gray-800">更新店家情報</h3>
-                    <p class="text-gray-500 mb-4 text-xs font-bold">更新線上菜單圖或聯絡電話</p>
-                    <div class="space-y-3">
-                        <select id="advShopSelect" class="w-full text-base p-3 font-bold text-gray-700 bg-white border-none shadow-sm rounded-xl" onchange="advShopChanged()">
-                            <option value="">-- 選擇店家 --</option>
-                            ${state.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
-                        </select>
-                        <input type="text" id="advImageUrl" placeholder="情報圖網址 (https://...)" class="w-full text-sm bg-white border-none shadow-sm rounded-xl p-3">
-                        <input type="text" id="advPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full text-sm bg-white border-none shadow-sm rounded-xl p-3">
-                        <button onclick="executeInfoUpdate()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl shadow hover:bg-black transition">儲存更新</button>
-                    </div>
-                </div>
-            </div>`;
-            container.innerHTML = html;
-        }
-
-        async function saveAdminSettings(isOpen) {
-            const checkboxes = document.querySelectorAll('.shop-checkbox');
-            const selectedShops = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-            const deadline = document.getElementById('adminDeadline').value;
-            
-            showLoading('寫入任務設定中...');
-            const res = await apiCall('adminUpdateSystemSettings', { isOpen, openedShops: selectedShops, deadline });
-            if (res) {
-                const initialData = await apiCall('getInitialData');
-                if(initialData) applyInitialData(initialData);
-                hideLoading();
-                showAlert(`系統已切換為：<b>${isOpen ? '任務進行中' : '停止任務'}</b>`, '設定成功');
-                renderAdminTab(document.getElementById('mainContent'));
-            } else {
-                hideLoading();
-            }
-        }
-
-        function advShopChanged() {
-            const shop = document.getElementById('advShopSelect').value;
-            document.getElementById('advImageUrl').value = shop && state.shopImages[shop] ? state.shopImages[shop] : '';
-            document.getElementById('advPhone').value = shop && state.shopPhones[shop] ? state.shopPhones[shop] : '';
-        }
-
-        async function executeInfoUpdate() {
-            const shop = document.getElementById('advShopSelect').value;
-            const imageUrl = document.getElementById('advImageUrl').value.trim();
-            const phone = document.getElementById('advPhone').value.trim();
-            if(!shop) return showAlert('請先選擇要維護的店家。', '資料缺失');
-            
-            showLoading('上傳情報中...');
-            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone });
-            hideLoading();
-            if(res) {
-                state.shopImages[shop] = imageUrl; 
-                state.shopPhones[shop] = phone;
-                showAlert(res, '更新成功');
-            }
-        }
-
-        async function openOrderList() {
-            showLoading('整理訂購清單中...');
-            const data = await apiCall('adminGetTodayData');
-            hideLoading();
-            if(!data) return;
-
-            let html = `
-            <div class="mb-6 flex items-center justify-between">
-                <button onclick="switchTab('admin')" class="text-gray-500 font-bold flex items-center bg-white border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-50 transition active:scale-95 shadow-sm">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg> 返回
-                </button>
-                <h2 class="text-2xl font-black text-gray-800 tracking-tight">訂購清單</h2>
-            </div>`;
-
-            if (Object.keys(data.summaryByShop).length === 0) {
-                html += getEmptyStateHtml('今日尚未接獲任何物資需求', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>`);
-            } else {
-                for (const shop in data.summaryByShop) {
-                    const shopData = data.summaryByShop[shop];
-                    const phone = state.shopPhones[shop] || '';
-                    const phoneBtn = phone ? `<a href="tel:${phone}" class="ml-auto text-sm font-bold text-white bg-[var(--pik-yellow)] hover:bg-yellow-500 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>${phone}</a>` : '';
-
-                    html += `<div class="bg-white mb-6 rounded-[2rem] border border-gray-200 overflow-hidden shadow-sm">
-                                <div class="bg-gray-800 p-4 flex items-center gap-3">
-                                    <h4 class="font-black text-xl text-white tracking-wide">${shop}</h4>
-                                    ${phoneBtn}
-                                </div>
-                                <div class="p-2">
-                                    <ul class="divide-y divide-gray-100">`;
-                    
-                    for (const itemName in shopData.items) {
-                        const itemInfo = shopData.items[itemName];
-                        html += `       <li class="p-3">
-                                            <p class="font-bold text-lg text-gray-800 leading-tight mb-2">${itemName}</p>
-                                            <div class="flex justify-between items-center bg-gray-50 rounded-lg p-2 px-3 border border-gray-100">
-                                                <span class="text-sm font-bold text-gray-500">共 <span class="text-xl text-gray-800 mx-1">${itemInfo.count}</span> 份</span>
-                                                <span class="font-black text-lg text-brand">$${itemInfo.subtotal}</span>
-                                            </div>
-                                        </li>`;
-                    }
-                    
-                    html += `       </ul>
-                                </div>
-                                <div class="bg-brand-light/50 p-4 border-t border-brand-light flex justify-between items-end">
-                                    <span class="text-brand font-bold text-sm uppercase tracking-widest">此店家總結算</span>
-                                    <span class="text-3xl font-black text-brand">$${shopData.totalRevenue}</span>
-                                </div>
-                            </div>`;
-                }
-            }
-            document.getElementById('mainContent').innerHTML = html;
-        }
-
-        async function openDistributeDash() {
-            showLoading('整理發餐核銷檯...');
-            const data = await apiCall('adminGetTodayData');
-            hideLoading();
-            if(!data) return;
-
-            let html = `
-            <div class="mb-6 flex items-center justify-between sticky top-0 bg-[#F4F7F6]/90 backdrop-blur pb-2 z-10 pt-2 -mt-2">
-                <button onclick="switchTab('admin')" class="text-gray-500 font-bold flex items-center bg-white border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-50 transition active:scale-95 shadow-sm">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg> 返回
-                </button>
-                <h2 class="text-2xl font-black text-gray-800 tracking-tight">發餐核銷檯</h2>
-            </div>`;
-
-            if (data.summaryByUser.length === 0) {
-                 html += getEmptyStateHtml('今日尚未接獲任何物資需求', `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>`);
-            } else {
-                let totalExpected = 0;
-                
-                data.summaryByUser.forEach(user => {
-                    totalExpected += user.total;
-                    const allPaid = user.orders.every(o => o['繳費情形'] === '已繳費' || o['繳費狀態'] === '已繳費');
-                    const allTaken = user.orders.every(o => o['取餐情形'] === '已取餐' || o['取餐狀態'] === '已取餐');
-                    const cardBg = (allPaid && allTaken) ? 'bg-gray-100 border-gray-200 opacity-60' : 'bg-white border-brand/20';
-                    
-                    html += `
-                    <div class="mb-5 rounded-[2rem] border-2 ${cardBg} overflow-hidden shadow-sm transition-all duration-300">
-                        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <h3 class="text-xl font-black text-gray-800 flex items-center gap-2">
-                                <div class="w-8 h-8 bg-brand-light text-brand rounded-full flex items-center justify-center text-sm">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
-                                </div>
-                                ${user.name}
-                            </h3>
-                            <span class="text-2xl font-black text-brand">$${user.total}</span>
-                        </div>
-                        <div class="p-2 space-y-2">`;
-                    
-                    user.orders.forEach(order => {
-                        const id = order['訂單編號'];
-                        const isPaid = order['繳費情形'] === '已繳費' || order['繳費狀態'] === '已繳費';
-                        const isTaken = order['取餐情形'] === '已取餐' || order['取餐狀態'] === '已取餐';
-                        
-                        // 獨立按鈕樣式
-                        const payBtn = isPaid 
-                            ? `<button onclick="updateSingleStatus('${id}', 'pay', '未繳費')" class="flex-1 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-700 border border-green-200 shadow-inner active:scale-95 transition">已付款</button>`
-                            : `<button onclick="updateSingleStatus('${id}', 'pay', '已繳費')" class="flex-1 py-2 rounded-xl text-sm font-bold bg-white text-gray-500 border-2 border-gray-200 hover:border-green-400 hover:text-green-600 shadow-sm active:scale-95 transition">收錢</button>`;
-                            
-                        const takeBtn = isTaken
-                            ? `<button onclick="updateSingleStatus('${id}', 'take', '未取餐')" class="flex-1 py-2 rounded-xl text-sm font-bold bg-blue-100 text-[var(--pik-blue)] border border-blue-200 shadow-inner active:scale-95 transition">已領取</button>`
-                            : `<button onclick="updateSingleStatus('${id}', 'take', '已取餐')" class="flex-1 py-2 rounded-xl text-sm font-bold bg-white text-gray-500 border-2 border-gray-200 hover:border-blue-400 hover:text-blue-600 shadow-sm active:scale-95 transition">給餐</button>`;
-
-                        html += `
-                            <div class="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                                <p class="text-xs font-black text-white bg-gray-400 px-2 py-0.5 rounded inline-block mb-1">${order['店家']}</p>
-                                <div class="flex justify-between items-start mb-2">
-                                    <p class="font-bold text-gray-800 leading-snug pr-2">${order['品項']} <span class="text-gray-400 text-xs font-medium block mt-0.5">${order['規格'] || order['訂購內容']}</span></p>
-                                    <span class="font-black text-lg text-gray-700 shrink-0 bg-gray-100 px-2 py-0.5 rounded-lg">x${order['數量']}</span>
-                                </div>
-                                <div class="flex gap-2 mt-3 border-t border-gray-50 pt-3">
-                                    ${payBtn}
-                                    ${takeBtn}
-                                </div>
-                            </div>`;
-                    });
-
-                    html += `   </div>
-                    </div>`;
-                });
-                
-                html += `
-                <div class="mt-8 mb-20 text-right bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200">
-                    <p class="text-gray-400 text-sm font-bold mb-1 uppercase tracking-widest">今日全團預計收入</p>
-                    <p class="text-5xl font-black text-gray-800">$${totalExpected}</p>
-                </div>`;
-            }
-            document.getElementById('mainContent').innerHTML = html;
-        }
-
-        async function updateSingleStatus(orderId, type, status) {
-            // 由於是單項更新，不顯示全螢幕 loading，改用輕量提示或直接更新
-            if (navigator.vibrate) navigator.vibrate(20);
-            
-            // 這裡暫時顯示 loading 確保資料一致，若嫌慢後續可改為 optimistic UI
-            showLoading('更新狀態...'); 
-            const res = await apiCall('adminUpdateStatus', { orderIds: [orderId], type, status });
-            if (res) {
-                openDistributeDash(); // 重新渲染發餐檯
-            } else {
-                hideLoading();
-            }
-        }
-
-        async function confirmCloseAll() {
-            showAlert('<span class="text-[var(--pik-red)] font-black text-xl mb-2 block">日落歸巢確認</span>確定要關閉點餐，並將今日所有物資紀錄封存嗎？<br><br>此操作無法復原，請確認帳款已結清。', '指揮官最終確認', [
-                { text: '取消', primary: false, action: 'closeAlert()' },
-                { text: '確定封存', primary: true, action: 'executeCloseAll()' }
-            ]);
-        }
-
-        async function executeCloseAll() {
-            closeAlert();
-            showLoading('執行日落封存程序...');
-            const res = await apiCall('adminCloseAndArchive');
-            hideLoading();
-            if(res) {
-                const initialData = await apiCall('getInitialData');
-                if(initialData) applyInitialData(initialData);
-                showAlert('系統已順利打烊，所有皮客覓皆已安全歸巢！', '程序完成');
-                switchTab('admin');
-            }
-        }
-
-        // --- 啟動程式 ---
-        window.onload = init;
     </script>
 </body>
 </html>
