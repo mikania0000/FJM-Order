@@ -27,12 +27,10 @@
         .sparkle-2 { animation: float-sparkle 2.5s infinite ease-in-out 0.5s; }
         .sparkle-3 { animation: float-sparkle 1.8s infinite ease-in-out 1s; }
 
-        /* --- 🌟 星巴克質感配色系統 --- */
         .theme-green { background-color: #006241; }
         .theme-text { color: #006241; }
         .theme-light { background-color: #e8f3ee; }
-        .theme-border { border-color: #006241; }
-        
+
         /* 隱藏 details 預設箭頭 */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
@@ -73,11 +71,9 @@
         </div>
     </div>
 
-    <!-- === 🌟 登入頁面 (含精緻 Logo) === -->
     <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-6 transition-transform duration-500">
         <div class="w-full max-w-md">
             <div class="flex flex-col items-center mb-10">
-                <!-- 精緻版盆栽 Logo -->
                 <div class="w-32 h-32 theme-green rounded-[2.5rem] shadow-xl flex flex-col items-center justify-center relative mb-5">
                     <svg class="absolute top-4 right-4 w-10 h-10 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                     <svg class="absolute top-2 left-6 w-5 h-5 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
@@ -87,7 +83,6 @@
                         <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
                     </div>
                 </div>
-                <!-- 標題 -->
                 <h1 class="text-5xl font-black text-slate-800 tracking-wider">皮客覓</h1>
                 <p class="text-base font-bold theme-text tracking-[0.3em] mt-2 uppercase">PickMeal</p>
                 <p class="text-base text-slate-500 mt-3 font-medium">探險家，準備好出發採集物資了嗎？</p>
@@ -115,7 +110,6 @@
         </div>
     </div>
 
-    <!-- === 主應用程式 === -->
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
@@ -130,8 +124,7 @@
                 <div class="text-sm text-slate-500 mt-1 font-medium" id="appDeadline">截止時間: 載入中</div>
             </div>
         </header>
-        
-        <!-- 打氣問候語區塊 -->
+
         <div class="bg-white px-5 py-3 border-b border-slate-100 flex items-center gap-2 z-10 shadow-sm">
             <i data-lucide="sun" class="w-6 h-6 text-amber-500"></i>
             <p class="text-base font-bold text-slate-600">探險家，今天想尋覓什麼美味呢？</p>
@@ -156,7 +149,6 @@
         </nav>
     </div>
 
-    <!-- 點餐彈窗 -->
     <div id="itemModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
         <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
             <div class="w-14 h-1.5 bg-slate-200 rounded-full mx-auto mb-5 shrink-0"></div>
@@ -167,7 +159,7 @@
                 </div>
                 <button onclick="closeItemModal()" class="p-3 bg-slate-100 rounded-full text-slate-500 shrink-0"><i data-lucide="x" class="w-7 h-7"></i></button>
             </div>
-            
+
             <div class="flex-1 overflow-y-auto no-scrollbar -mx-2 px-2" id="modalOptionsArea"></div>
 
             <div class="mt-6 pt-5 border-t border-slate-100 shrink-0 flex gap-4 items-center">
@@ -184,14 +176,14 @@
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
-        
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec';
+
         const state = {
             user: null, token: null,
             system: { isOpen: false, openedShops: [], deadline: '' },
             data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, userOrders: [], popularityCache: {} },
             cart: [], currentTab: 'menu', activeShop: '',
-            tempItem: null, adminProxyName: '' 
+            tempItem: null, adminProxyName: ''
         };
 
         let pzInstance = null; let pzWheelHandler = null;
@@ -301,7 +293,7 @@
             state.data = data;
             document.getElementById('userGreeting').textContent = `${state.user.role === '管理' ? '指揮官' : '探險家'} ${state.user.name}`;
             document.getElementById('appDeadline').textContent = state.system.deadline ? `打烊時間: ${state.system.deadline}` : '隨時可發射洋蔥號';
-            
+
             if (state.system.openedShops.length > 0 && !state.activeShop) {
                 state.activeShop = state.system.openedShops[0];
             }
@@ -334,19 +326,16 @@
             lucide.createIcons();
         }
 
-        // ==========================================
-        // 探索菜單 (星巴克配色版)
-        // ==========================================
         function renderMenuTab(container) {
             if (!state.system.isOpen) {
                 container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full p-8 text-center text-slate-500">
-                        <div class="w-24 h-24 theme-light rounded-full flex items-center justify-center mb-5">
-                            <i data-lucide="moon" class="w-12 h-12 theme-text"></i>
-                        </div>
-                        <h2 class="text-3xl font-bold text-slate-700 mb-3">日落了</h2>
-                        <p class="text-xl leading-relaxed">皮客覓已休息，<br>目前基地不開放物資採集。</p>
-                    </div>`;
+                <div class="flex flex-col items-center justify-center h-full p-8 text-center text-slate-500">
+                    <div class="w-24 h-24 theme-light rounded-full flex items-center justify-center mb-5">
+                        <i data-lucide="moon" class="w-12 h-12 theme-text"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-700 mb-3">日落了</h2>
+                    <p class="text-xl leading-relaxed">皮客覓已休息，<br>目前基地不開放物資採集。</p>
+                </div>`;
                 return;
             }
 
@@ -365,18 +354,18 @@
             }
 
             html += `
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-0 z-10">
-                    ${state.system.openedShops.map(shop => `
-                        <button onclick="state.activeShop='${shop}'; renderMenuTab(document.getElementById('mainContent'))" 
-                            class="whitespace-nowrap px-6 py-3 rounded-2xl font-bold text-lg transition-all ${state.activeShop === shop ? 'theme-green text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}">
-                            ${shop}
-                        </button>
-                    `).join('')}
-                </div>`;
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-0 z-10">
+                ${state.system.openedShops.map(shop => `
+                    <button onclick="state.activeShop='${shop}'; renderMenuTab(document.getElementById('mainContent'))"
+                        class="whitespace-nowrap px-6 py-3 rounded-2xl font-bold text-lg transition-all ${state.activeShop === shop ? 'theme-green text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}">
+                        ${shop}
+                    </button>
+                `).join('')}
+            </div>`;
 
             const imgUrl = state.data.shopImages[state.activeShop];
             const phone = state.data.shopPhones[state.activeShop];
-            
+
             if (imgUrl || phone) {
                 html += `<div class="flex gap-3">`;
                 if(imgUrl) {
@@ -400,19 +389,19 @@
 
             const menu = state.data.menuData[state.activeShop] || [];
             let groupedMenu = {};
-            
+
             menu.forEach((item, index) => {
                 if (!item['品項']) return;
                 const category = item['類別'] || '其他美味';
                 if (!groupedMenu[category]) groupedMenu[category] = [];
-                item._originalRawIndex = index; 
+                item._originalRawIndex = index;
                 groupedMenu[category].push(item);
             });
 
             let catIndex = 0;
             for (let cat in groupedMenu) {
-                const isOpen = catIndex === 0 ? 'open' : ''; 
-                
+                const isOpen = catIndex === 0 ? 'open' : '';
+
                 html += `
                 <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-slate-100 overflow-hidden" ${isOpen}>
                     <summary class="px-5 py-5 font-black text-xl text-slate-700 cursor-pointer flex justify-between items-center bg-slate-50 group-open:bg-[#006241] group-open:text-white transition-colors">
@@ -436,7 +425,7 @@
                         }
                     }
 
-                    // 讀取人氣值
+                    // 讀取人氣值 (純顯示)
                     const pop = state.data.popularityCache && state.data.popularityCache[item['品項']] ? state.data.popularityCache[item['品項']] : 0;
 
                     if (basePrice > 0) {
@@ -462,17 +451,19 @@
                 html += `</div></details>`;
                 catIndex++;
             }
-            
             html += `</div>`;
             container.innerHTML = html;
         }
 
         function openItemModal(itemIndex) {
             const itemData = state.data.menuData[state.activeShop][itemIndex];
-            
             state.tempItem = {
-                shop: state.activeShop, name: itemData['品項'], basePrice: 0,
-                selectedSpec: {}, extraPrice: 0, quantity: 1
+                shop: state.activeShop,
+                name: itemData['品項'],
+                basePrice: 0,
+                selectedSpec: {},
+                extraPrice: 0,
+                quantity: 1
             };
 
             document.getElementById('modalItemName').textContent = itemData['品項'];
@@ -482,23 +473,23 @@
             let isFirstPriceSet = false;
 
             for (let key in itemData) {
-                if (key === '_originalIndex' || key === '類別' || key === '品項' || !itemData[key]) continue;
+                if (key === '_originalIndex' || key === '類別' || key === '品項' || key === '_originalRawIndex') continue;
+                if (!itemData[key]) continue;
 
                 if (key.includes('價格') || key.includes('單價') || key === 'L' || key === 'M' || key === '瓶') {
                     const price = parseInt(itemData[key]);
-                    if (!isNaN(price)) {
-                        if(!isFirstPriceSet) {
+                    if (!isNaN(price) && price > 0) {
+                        if (!isFirstPriceSet) {
                             state.tempItem.basePrice = price;
                             state.tempItem.selectedSpec['規格'] = key.includes('單價') ? '' : key;
                             isFirstPriceSet = true;
                         }
-                        
                         optionsHtml += `
-                        <div class="mb-6">
-                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 theme-border pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
-                            <div class="flex flex-wrap gap-3">
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
+                        <div class="mb-4">
+                            <label class="block text-base font-bold text-slate-500 mb-2 ml-1">選擇規格</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
                                     <div class="px-5 py-3 rounded-xl border-2 border-slate-200 text-lg font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
                                         ${key.includes('單價') ? `單價 (+$${price})` : `${key} (+$${price})`}
                                     </div>
@@ -509,7 +500,6 @@
                 } else {
                     const optString = String(itemData[key]);
                     const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
-                    
                     if (options.length > 0) {
                         state.tempItem.selectedSpec[key] = '';
                         optionsHtml += `
@@ -522,8 +512,9 @@
                                 <option value="" disabled selected>-- 請選擇 --</option>`;
                         
                         options.forEach(opt => {
-                            let extra = 0; let displayName = opt;
-                            const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
+                            let extra = 0;
+                            let displayName = opt;
+                            const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/);
                             if (priceMatch) {
                                 extra = parseInt(priceMatch[1]);
                                 displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
@@ -531,7 +522,6 @@
                             const valueData = `${displayName}|${extra}`;
                             optionsHtml += `<option value="${valueData}">${displayName}</option>`;
                         });
-                        
                         optionsHtml += `</select></div>`;
                     }
                 }
@@ -539,7 +529,6 @@
 
             document.getElementById('modalOptionsArea').innerHTML = optionsHtml;
             updateModalPrice();
-            
             const modal = document.getElementById('itemModal');
             modal.classList.remove('hidden');
             setTimeout(() => {
@@ -568,15 +557,17 @@
             for(let key in state.tempItem.selectedSpec) {
                 if(key !== '規格' && state.tempItem.selectedSpec[key]) {
                     const parts = state.tempItem.selectedSpec[key].split('|');
-                    if(parts.length > 1) totalExtra += parseInt(parts[1]);
+                    const extra = parseInt(parts[1]) || 0;
+                    totalExtra += extra;
                 }
             }
             state.tempItem.extraPrice = totalExtra;
             updateModalPrice();
         }
 
-        function adjustQty(delta) {
-            let q = state.tempItem.quantity + delta;
+        function adjustQty(amount) {
+            if (!state.tempItem) return;
+            let q = state.tempItem.quantity + amount;
             if (q < 1) q = 1;
             state.tempItem.quantity = q;
             document.getElementById('modalQty').textContent = q;
@@ -584,6 +575,7 @@
         }
 
         function updateModalPrice() {
+            if (!state.tempItem) return;
             const singlePrice = state.tempItem.basePrice + state.tempItem.extraPrice;
             const total = singlePrice * state.tempItem.quantity;
             document.getElementById('modalItemPrice').textContent = `$${singlePrice}`;
@@ -591,31 +583,37 @@
         }
 
         function addToCart() {
-            for(let key in state.tempItem.selectedSpec) {
-                if(key !== '規格' && !state.tempItem.selectedSpec[key]) {
-                    return showAlert(`請選擇「${key}」！`);
+            for (let key in state.tempItem.selectedSpec) {
+                if (!state.tempItem.selectedSpec[key]) {
+                    return showAlert(`請完成【${key}】的必選設定喔！`);
                 }
             }
 
-            let specArr = [];
-            if(state.tempItem.selectedSpec['規格']) specArr.push(state.tempItem.selectedSpec['規格']);
-            for(let key in state.tempItem.selectedSpec) {
-                if(key !== '規格' && state.tempItem.selectedSpec[key]) {
-                     specArr.push(state.tempItem.selectedSpec[key].split('|')[0]);
+            let specParts = [];
+            if (state.tempItem.selectedSpec['規格']) {
+                specParts.push(state.tempItem.selectedSpec['規格']);
+            }
+            for (let key in state.tempItem.selectedSpec) {
+                if (key !== '規格') {
+                    const displayValue = state.tempItem.selectedSpec[key].split('|')[0];
+                    specParts.push(displayValue);
                 }
             }
-            const finalSpec = specArr.join(' / ');
+
+            const finalSpec = specParts.join(' / ');
             const finalPrice = state.tempItem.basePrice + state.tempItem.extraPrice;
 
             state.cart.push({
-                shop: state.tempItem.shop, name: state.tempItem.name,
-                spec: finalSpec, price: finalPrice, quantity: state.tempItem.quantity,
+                shop: state.tempItem.shop,
+                name: state.tempItem.name,
+                spec: finalSpec,
+                price: finalPrice,
+                quantity: state.tempItem.quantity,
                 name_override: state.adminProxyName || ''
             });
 
             updateCartBadge();
             closeItemModal();
-            
             const tabBtn = document.getElementById('tab-cart');
             tabBtn.classList.add('scale-110', 'text-[#006241]');
             setTimeout(() => tabBtn.classList.remove('scale-110', 'text-[#006241]'), 300);
@@ -636,15 +634,15 @@
         function renderCartTab(container) {
             if (state.cart.length === 0) {
                 container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <div class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
-                            <div class="absolute bottom-4 w-16 h-12 bg-slate-300 rounded-b-xl"></div>
-                            <div class="absolute bottom-16 w-4 h-4 bg-slate-200 rounded-full"></div>
-                        </div>
-                        <h2 class="text-2xl font-bold text-slate-700 mb-2">物資背包空空的</h2>
-                        <p class="text-slate-500 text-lg">趕快去菜單播下美味的種子吧！</p>
-                        <button onclick="switchTab('menu')" class="mt-8 px-8 py-4 theme-light theme-text font-bold text-xl rounded-xl active:scale-95 transition-transform">去探索菜單</button>
-                    </div>`;
+                <div class="flex flex-col items-center justify-center h-full p-8 text-center">
+                    <div class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
+                        <div class="absolute bottom-4 w-16 h-12 bg-slate-300 rounded-b-xl"></div>
+                        <div class="absolute bottom-16 w-4 h-4 bg-slate-200 rounded-full"></div>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-700 mb-2">物資背包空空的</h2>
+                    <p class="text-slate-500 text-lg">趕快去菜單播下美味的種子吧！</p>
+                    <button onclick="switchTab('menu')" class="mt-8 px-8 py-4 theme-light theme-text font-bold text-xl rounded-xl active:scale-95 transition-transform">去探索菜單</button>
+                </div>`;
                 return;
             }
 
@@ -652,7 +650,7 @@
             let html = `<div class="p-4 pb-36">
                 <h2 class="text-2xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="backpack" class="w-8 h-8 theme-text"></i> 已收集的物資</h2>
                 <div class="space-y-4">`;
-
+            
             state.cart.forEach((item, idx) => {
                 const itemTotal = item.price * item.quantity;
                 total += itemTotal;
@@ -667,45 +665,36 @@
                         ${item.name_override ? `<p class="text-sm bg-amber-100 text-amber-800 inline-block px-3 py-1 rounded font-bold mb-3">代點: ${item.name_override}</p>` : ''}
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-base font-bold text-slate-400">$${item.price} x ${item.quantity}</span>
-                            <span class="font-black theme-text text-2xl">$${itemTotal}</span>
+                            <span class="text-2xl font-black theme-text">$${itemTotal}</span>
                         </div>
                     </div>
                 </div>`;
             });
 
-            html += `</div></div>
-            <div class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-full max-w-3xl left-1/2 -translate-x-1/2 p-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-20">
-                <div class="bg-slate-800 rounded-3xl p-5 flex justify-between items-center shadow-2xl">
-                    <div class="text-white">
-                        <p class="text-base opacity-70 mb-1">預估總計</p>
-                        <p class="text-4xl font-black">$${total}</p>
+            html += `
+                </div>
+                <div class="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-20">
+                    <div class="bg-slate-900 text-white p-5 rounded-3xl shadow-xl flex justify-between items-center border border-slate-800 backdrop-blur">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400">採集預估總計</p>
+                            <p class="text-3xl font-black text-emerald-400 mt-1 tracking-wide">$${total}</p>
+                        </div>
+                        <button onclick="submitOrder()" class="theme-green hover:bg-emerald-800 text-white font-bold px-8 py-4 rounded-xl text-lg flex items-center gap-2 active:scale-95 transition-transform">
+                            <i data-lucide="send" class="w-5 h-5"></i> 派遣洋蔥號提交
+                        </button>
                     </div>
-                    <button onclick="submitOrder()" class="theme-green text-white font-bold px-8 py-4 rounded-2xl flex items-center gap-3 hover:bg-emerald-800 active:scale-95 transition-transform shadow-lg shadow-emerald-900/50 text-xl">
-                        發射洋蔥號 <i data-lucide="rocket" class="w-6 h-6"></i>
-                    </button>
                 </div>
             </div>`;
             container.innerHTML = html;
         }
 
-        function checkIsPastDeadline() {
-            if (!state.system.deadline) return false;
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-            return timeStr > state.system.deadline;
-        }
-
         async function submitOrder() {
-            if (checkIsPastDeadline()) {
-                showAlert('已經超過今日點餐截止時間，皮客覓無法為您搬運物資囉！', '日落了');
-                return;
-            }
-            showLoading('皮客覓奮力處理訂單中...');
-            const res = await apiCall('submitOrder', state.cart);
+            showLoading('正在向基地發送物資訂單...');
+            const res = await apiCall('submitOrder', { items: state.cart });
             if (res) {
-                showAlert(res, '發射成功！');
                 state.cart = [];
                 updateCartBadge();
+                showAlert('物資派遣提交成功！請至【指揮所】確認紀錄與進度。', '發射成功！');
                 loadInitialData();
             }
         }
@@ -739,8 +728,11 @@
                                             <p class="font-black text-slate-800 text-2xl leading-none">$${order['小計']}</p>
                                         </div>
                                     </div>
-                                    ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? 
-                                        `<button onclick="deleteOrder('${order['訂單編號']}')" class="absolute top-3 right-4 text-slate-300 hover:text-red-500 bg-slate-50 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>` : ''}
+                                    ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? `
+                                        <div class="mt-4 flex justify-end">
+                                            <button onclick="deleteOrder('${order['訂單編號']}')" class="text-sm bg-red-50 text-red-500 font-bold px-4 py-2 rounded-xl active:bg-red-100 flex items-center gap-1"><i data-lucide="trash-2" class="w-4 h-4"></i> 取消派遣</button>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             `).join('')}
                         </div>`
@@ -749,23 +741,50 @@
 
             if (state.user.role === '管理') {
                 html += `
-                <div class="mt-10 pt-8 border-t-2 border-dashed border-slate-200">
-                    <h3 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><i data-lucide="command" class="w-7 h-7 theme-text"></i> 指揮官控制台</h3>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">發餐與核銷檯</span>
+                <div class="border-t border-slate-200 pt-6">
+                    <h3 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="shield" class="w-7 h-7 text-amber-600"></i> 管理者指揮中心</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-5">
+                        <button onclick="fetchAdminData('dashboard')" class="bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:border-[#006241] active:bg-emerald-50/20 group">
+                            <i data-lucide="users" class="w-7 h-7 text-slate-400 group-active:theme-text"></i>
+                            <span class="font-bold text-base text-slate-600 group-active:theme-text">人員收款統計</span>
                         </button>
-                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">實戰訂購清單</span>
-                        </button>
-                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform col-span-2">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">基地系統設定</span>
+                        <button onclick="fetchAdminData('list')" class="bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:border-[#006241] active:bg-emerald-50/20 group">
+                            <i data-lucide="shopping-bag" class="w-7 h-7 text-slate-400 group-active:theme-text"></i>
+                            <span class="font-bold text-base text-slate-600 group-active:theme-text">店家品項統計</span>
                         </button>
                     </div>
+                    
+                    <div class="bg-white border border-slate-100 p-5 rounded-3xl shadow-sm">
+                        <h4 class="font-bold text-lg text-slate-800 mb-4">系統權限點餐開關</h4>
+                        <div class="mb-4">
+                            <label class="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+                                <input type="checkbox" id="systemIsOpen" class="w-6 h-6 text-[#006241] focus:ring-[#006241] rounded" ${state.system.isOpen ? 'checked' : ''}>
+                                <span class="text-lg font-bold text-slate-700">開啟點餐通道</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-base font-bold text-slate-600 mb-2">開放採集店家</label>
+                            <div class="flex flex-wrap gap-3">
+                                ${state.data.allShops.map(shop => `
+                                    <label class="flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                        <input type="checkbox" class="shop-checkbox w-6 h-6 text-[#006241] rounded focus:ring-[#006241]" value="${shop}" ${state.system.openedShops.includes(shop) ? 'checked' : ''}>
+                                        <span class="text-lg font-bold text-slate-700">${shop}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-base font-bold text-slate-600 mb-2">點餐截止時間</label>
+                            <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                        </div>
+                        <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
+                    </div>
+
+                    <button onclick="adminCloseAndArchive()" class="w-full bg-red-500 hover:bg-red-600 text-white text-xl font-bold py-4 rounded-xl mt-5 shadow-lg shadow-red-900/20 active:scale-95 transition-transform flex justify-center items-center gap-2">
+                        <i data-lucide="sunset" class="w-6 h-6"></i> 執行日落打烊與封存
+                    </button>
                 </div>`;
             }
 
@@ -774,9 +793,13 @@
         }
 
         async function deleteOrder(id) {
+            if (!confirm('確定要取消此項物資派遣嗎？')) return;
             showLoading('正在取消派遣...');
             const res = await apiCall('deleteOrder', { orderId: id });
-            if (res) { showAlert(res); loadInitialData(); }
+            if (res) {
+                showAlert(res);
+                loadInitialData();
+            }
         }
 
         async function fetchAdminData(viewType) {
@@ -792,18 +815,15 @@
 
         function renderAdminDashboard(container, summaryByUser) {
             let contentHtml = '';
-            
             if (summaryByUser.length === 0) {
                 contentHtml = `<div class="text-center text-slate-500 mt-10 text-xl">今日尚無物資紀錄</div>`;
             } else {
                 summaryByUser.forEach(user => {
                     const isAllDone = user.paid && user.taken;
-                    const orderIds = user.orders.map(o => o['訂單編號']).join(','); 
-                    
+                    const orderIds = user.orders.map(o => o['訂單編號']).join(',');
                     contentHtml += `
                     <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-5 mb-5 relative overflow-hidden transition-colors">
                         ${isAllDone ? `<div class="absolute top-0 right-0 w-20 h-20 bg-emerald-100 rounded-bl-full flex items-start justify-end p-4"><i data-lucide="check-circle" class="w-7 h-7 text-emerald-500"></i></div>` : ''}
-                        
                         <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
                             <h3 class="text-2xl font-black text-slate-800">${user.name}</h3>
                             <div class="text-right">
@@ -811,31 +831,28 @@
                                 <p class="text-4xl font-black theme-text leading-none">$${user.total}</p>
                             </div>
                         </div>
-                        
                         <div class="space-y-3">`;
 
                     user.orders.forEach(order => {
                         contentHtml += `
-                            <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl">
-                                <div class="flex-1 min-w-0 pr-2">
-                                    <span class="text-xs font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
-                                    <span class="font-bold text-slate-700 text-lg align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
-                                    ${order['規格']||order['訂購內容'] ? `<p class="text-base text-slate-500 mt-1 break-words">${order['規格']||order['訂購內容']}</p>` : ''}
-                                </div>
-                                <span class="font-bold text-slate-700 text-xl shrink-0 ml-2">$${order['小計']}</span>
-                            </div>`;
+                        <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl">
+                            <div class="flex-1 min-w-0 pr-2">
+                                <span class="text-xs font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
+                                <span class="font-bold text-slate-700 text-lg align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
+                                ${order['規格']||order['訂購內容'] ? `<p class="text-base text-slate-500 mt-1 break-words">${order['規格']||order['訂購內容']}</p>` : ''}
+                            </div>
+                            <span class="font-bold text-slate-700 text-xl shrink-0 ml-2">$${order['小計']}</span>
+                        </div>`;
                     });
 
                     contentHtml += `
                         </div>
                         <div class="flex gap-3 mt-5 pt-4 border-t border-slate-100">
-                            <button onclick="adminQuickUpdateMultiple('${orderIds}', 'pay', '${user.paid ? '未繳費' : '已繳費'}', this)" 
-                                class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.paid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
-                                <i data-lucide="dollar-sign" class="w-6 h-6"></i> ${user.paid ? '已收全額' : '一鍵收滿全額'}
+                            <button onclick="adminQuickUpdateMultiple('${orderIds}', 'pay', ${!user.paid}, this)" class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.paid ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'theme-green text-white shadow-md shadow-emerald-900/10 hover:bg-emerald-800'}">
+                                <i data-lucide="dollar-sign" class="w-5 h-5"></i> ${user.paid ? '改為未繳費' : '確認已繳清'}
                             </button>
-                            <button onclick="adminQuickUpdateMultiple('${orderIds}', 'take', '${user.taken ? '未取餐' : '已取餐'}', this)" 
-                                class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.taken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
-                                <i data-lucide="coffee" class="w-6 h-6"></i> ${user.taken ? '已全給餐' : '一鍵全部給餐'}
+                            <button onclick="adminQuickUpdateMultiple('${orderIds}', 'take', ${!user.taken}, this)" class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.taken ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-slate-800 text-white shadow-md hover:bg-slate-700'}">
+                                <i data-lucide="package" class="w-5 h-5"></i> ${user.taken ? '改為未取餐' : '確認已取餐'}
                             </button>
                         </div>
                     </div>`;
@@ -843,10 +860,10 @@
             }
 
             container.innerHTML = `
-            <div class="p-4 pb-safe bg-slate-50 min-h-full">
-                <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">發餐與核銷檯</h2>
+            <div class="p-4 pb-24">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800">人員收款統計表</h2>
+                    <button onclick="switchTab('profile')" class="text-base font-bold text-slate-500 bg-slate-200/60 px-4 py-2 rounded-xl">返回</button>
                 </div>
                 ${contentHtml}
             </div>`;
@@ -861,7 +878,7 @@
 
             const res = await apiCall('adminUpdateStatus', { orderIds: orderIds.split(','), type, status });
             if (res) {
-                fetchAdminData('dashboard'); 
+                fetchAdminData('dashboard');
             } else {
                 btnElement.className = originalClass;
                 btnElement.innerHTML = originalText;
@@ -871,14 +888,12 @@
         function renderAdminOrderList(container, summaryByShop) {
             let contentHtml = '';
             const shops = Object.keys(summaryByShop);
-            
             if (shops.length === 0) {
                 contentHtml = `<div class="text-center text-slate-500 mt-10 text-xl">今日尚無訂單</div>`;
             } else {
                 shops.forEach(shop => {
                     const shopData = summaryByShop[shop];
                     const phone = state.data.shopPhones[shop] || '';
-                    
                     contentHtml += `
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                         <div class="flex flex-col gap-3 mb-5 border-b border-slate-100 pb-4">
@@ -888,174 +903,66 @@
                                     <i data-lucide="phone" class="w-6 h-6"></i> 點擊撥打: ${phone}
                                 </a>` : '<span class="text-base text-slate-400 pl-1">無電話資料</span>'}
                         </div>
-                        
                         <div class="space-y-4 mb-5">`;
                     
                     for (let itemName in shopData.items) {
                         const item = shopData.items[itemName];
                         contentHtml += `
-                            <div class="flex justify-between items-start border-b border-slate-50 pb-3">
-                                <div class="pr-3 flex-1 min-w-0">
-                                    <p class="font-bold text-slate-700 text-lg leading-snug break-words">${itemName}</p>
-                                </div>
-                                <div class="text-right shrink-0 ml-2">
-                                    <p class="font-black theme-text text-xl">共 ${item.count} 份</p>
-                                    <p class="text-base text-slate-400 font-bold">$${item.subtotal}</p>
-                                </div>
-                            </div>`;
+                        <div class="flex justify-between items-start border-b border-slate-50 pb-3">
+                            <div class="pr-3 flex-1 min-w-0">
+                                <p class="font-bold text-slate-700 text-lg leading-snug break-words">${itemName}</p>
+                            </div>
+                            <div class="text-right shrink-0 ml-2">
+                                <p class="font-black theme-text text-xl">共 ${item.count} 份</p>
+                                <p class="text-base text-slate-400 font-bold">$${item.subtotal}</p>
+                            </div>
+                        </div>`;
                     }
 
                     contentHtml += `
                         </div>
                         <div class="bg-slate-50 rounded-2xl p-5 flex justify-between items-center">
-                            <span class="text-lg font-bold text-slate-500">此店家訂購總額</span>
-                            <span class="text-3xl font-black theme-text">$${shopData.totalAmount}</span>
+                            <span class="font-bold text-slate-500 text-lg">店家總計數量</span>
+                            <span class="font-black text-slate-800 text-2xl">${shopData.totalCount} 份 / $${shopData.totalMoney}</span>
                         </div>
                     </div>`;
                 });
             }
 
             container.innerHTML = `
-            <div class="p-4 pb-safe bg-slate-50 min-h-full">
-                <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">實戰訂購清單</h2>
+            <div class="p-4 pb-24">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-slate-800">店家品項統計表</h2>
+                    <button onclick="switchTab('profile')" class="text-base font-bold text-slate-500 bg-slate-200/60 px-4 py-2 rounded-xl">返回</button>
                 </div>
                 ${contentHtml}
             </div>`;
             lucide.createIcons();
-        }
-
-        function renderAdminSettings() {
-            let contentHtml = `
-            <!-- 🌟 新功能：新增店家 (從 Excel 貼上) -->
-            <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
-                <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
-                <div class="space-y-4">
-                    <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-lg font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-[#006241] outline-none font-mono whitespace-pre text-slate-600"></textarea>
-                    
-                    <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填，例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
-                        <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
-                    </button>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
-                <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">營運開關</h3>
-                <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
-                    <span class="text-lg font-bold text-slate-700">開放點餐</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="setIsOpen" class="sr-only peer" ${state.system.isOpen ? 'checked' : ''}>
-                        <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[1.75rem] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#006241]"></div>
-                    </label>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-base font-bold text-slate-600 mb-3">今日開放店家 (請打勾)</label>
-                    <div class="flex flex-wrap gap-3">
-                        ${state.data.allShops.map(shop => `
-                            <label class="flex items-center gap-2 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                                <input type="checkbox" class="shop-checkbox w-6 h-6 text-[#006241] rounded focus:ring-[#006241]" value="${shop}" ${state.system.openedShops.includes(shop) ? 'checked' : ''}>
-                                <span class="text-lg font-bold text-slate-700">${shop}</span>
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="mb-6">
-                    <label class="block text-base font-bold text-slate-600 mb-2">點餐截止時間</label>
-                    <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                </div>
-                <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
-            </div>
-
-            <!-- 保留原本的更新店家資訊區塊 -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
-                <h3 class="text-lg font-bold text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">更新現有店家資訊</h3>
-                <div class="space-y-4">
-                    <select id="updateShopName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base font-bold text-slate-700 focus:ring-2 focus:ring-[#006241] outline-none">
-                        <option value="">-- 選擇店家 --</option>
-                        ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
-                    </select>
-                    <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg">更新店家資料</button>
-                </div>
-            </div>
-
-            <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8 shadow-sm">
-                <i data-lucide="archive" class="w-7 h-7"></i> 執行日落打烊與封存
-            </button>`;
-
-            const container = document.getElementById('mainContent');
-            container.innerHTML = `
-            <div class="p-4 pb-safe bg-slate-50 min-h-full">
-                <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">基地系統設定</h2>
-                </div>
-                ${contentHtml}
-            </div>`;
-            lucide.createIcons();
-        }
-
-        // 新增店家邏輯 (處理 Excel 貼上的資料)
-        async function addNewShop() {
-            const shop = document.getElementById('newShopName').value.trim();
-            const rawData = document.getElementById('newShopMenuData').value.trim();
-            const imageUrl = document.getElementById('newShopImg').value.trim();
-            const phone = document.getElementById('newShopPhone').value.trim();
-
-            if (!shop) return showAlert('請輸入新店家的名稱！');
-            if (!rawData) return showAlert('請在對應欄位貼上從 Excel 複製的菜單資料！');
-
-            // 解析從 Excel 複製來的資料 (通常是 Tab 分隔的字串)
-            const rows = rawData.split('\n');
-            const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
-
-            showLoading('皮客覓正在開墾新店家...');
-            const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone });
-            if (res) {
-                showAlert(res);
-                loadInitialData(); // 重新載入以顯示新店家
-            }
         }
 
         async function saveSystemSettings() {
-            const checkboxes = document.querySelectorAll('.shop-checkbox:checked');
-            const openedShops = Array.from(checkboxes).map(cb => cb.value);
-            
-            const data = {
-                isOpen: document.getElementById('setIsOpen').checked,
-                openedShops: openedShops,
-                deadline: document.getElementById('setDeadline').value
-            };
-            showLoading('更新設定中...');
-            const res = await apiCall('adminUpdateSystemSettings', data);
-            if (res) { showAlert(res); loadInitialData(); }
-        }
+            const isOpen = document.getElementById('systemIsOpen').checked;
+            const deadline = document.getElementById('setDeadline').value;
+            const openedShops = [];
+            document.querySelectorAll('.shop-checkbox:checked').forEach(cb => openedShops.push(cb.value));
 
-        async function updateShopInfo() {
-            const shop = document.getElementById('updateShopName').value;
-            const imageUrl = document.getElementById('updateShopImg').value.trim();
-            const phone = document.getElementById('updateShopPhone').value.trim();
-            if (!shop) return showAlert('請選擇店家');
-            showLoading('更新店家資料中...');
-            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone });
-            if (res) { showAlert(res); loadInitialData(); }
+            const data = { isOpen, deadline, openedShops };
+            showLoading('正在上傳系統設定中...');
+            const res = await apiCall('adminUpdateSystemSettings', data);
+            if (res) {
+                showAlert(res);
+                loadInitialData();
+            }
         }
 
         async function adminCloseAndArchive() {
             if (!confirm('確定要執行日落打烊嗎？這將會把今日紀錄封存並關閉點餐。')) return;
             showLoading('皮客覓正在封存物資紀錄...');
             const res = await apiCall('adminCloseAndArchive');
-            if (res) { showAlert(res); loadInitialData(); }
+            if (res) {
+                showAlert(res);
+                loadInitialData();
+            }
         }
 
         function openLightbox(url) {
