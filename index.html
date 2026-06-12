@@ -27,9 +27,11 @@
         .sparkle-2 { animation: float-sparkle 2.5s infinite ease-in-out 0.5s; }
         .sparkle-3 { animation: float-sparkle 1.8s infinite ease-in-out 1s; }
 
+        /* --- 🌟 星巴克質感配色系統 --- */
         .theme-green { background-color: #006241; }
         .theme-text { color: #006241; }
         .theme-light { background-color: #e8f3ee; }
+        .theme-border { border-color: #006241; }
         
         /* 隱藏 details 預設箭頭 */
         details > summary { list-style: none; }
@@ -71,10 +73,11 @@
         </div>
     </div>
 
-    <!-- 登入頁面 -->
+    <!-- === 🌟 登入頁面 (含精緻 Logo) === -->
     <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-6 transition-transform duration-500">
         <div class="w-full max-w-md">
             <div class="flex flex-col items-center mb-10">
+                <!-- 精緻版盆栽 Logo -->
                 <div class="w-32 h-32 theme-green rounded-[2.5rem] shadow-xl flex flex-col items-center justify-center relative mb-5">
                     <svg class="absolute top-4 right-4 w-10 h-10 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                     <svg class="absolute top-2 left-6 w-5 h-5 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
@@ -84,6 +87,7 @@
                         <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
                     </div>
                 </div>
+                <!-- 標題 -->
                 <h1 class="text-5xl font-black text-slate-800 tracking-wider">皮客覓</h1>
                 <p class="text-base font-bold theme-text tracking-[0.3em] mt-2 uppercase">PickMeal</p>
                 <p class="text-base text-slate-500 mt-3 font-medium">探險家，準備好出發採集物資了嗎？</p>
@@ -111,7 +115,7 @@
         </div>
     </div>
 
-    <!-- 主應用程式 -->
+    <!-- === 主應用程式 === -->
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
@@ -330,6 +334,9 @@
             lucide.createIcons();
         }
 
+        // ==========================================
+        // 探索菜單 (星巴克配色版)
+        // ==========================================
         function renderMenuTab(container) {
             if (!state.system.isOpen) {
                 container.innerHTML = `
@@ -429,7 +436,7 @@
                         }
                     }
 
-                    // 讀取人氣值 (純顯示，不觸發更新)
+                    // 讀取人氣值
                     const pop = state.data.popularityCache && state.data.popularityCache[item['品項']] ? state.data.popularityCache[item['品項']] : 0;
 
                     if (basePrice > 0) {
@@ -488,7 +495,7 @@
                         
                         optionsHtml += `
                         <div class="mb-6">
-                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 border-[#006241] pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
+                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 theme-border pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
                             <div class="flex flex-wrap gap-3">
                                 <label class="relative cursor-pointer">
                                     <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
@@ -921,6 +928,24 @@
 
         function renderAdminSettings() {
             let contentHtml = `
+            <!-- 🌟 新功能：新增店家 (從 Excel 貼上) -->
+            <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
+                <div class="space-y-4">
+                    <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-lg font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-[#006241] outline-none font-mono whitespace-pre text-slate-600"></textarea>
+                    
+                    <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填，例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
+                        <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
+                    </button>
+                </div>
+            </div>
+
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-xl font-bold text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">營運開關</h3>
                 <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
@@ -950,6 +975,20 @@
                 <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
             </div>
 
+            <!-- 保留原本的更新店家資訊區塊 -->
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">更新現有店家資訊</h3>
+                <div class="space-y-4">
+                    <select id="updateShopName" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base font-bold text-slate-700 focus:ring-2 focus:ring-[#006241] outline-none">
+                        <option value="">-- 選擇店家 --</option>
+                        ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+                    <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg">更新店家資料</button>
+                </div>
+            </div>
+
             <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8 shadow-sm">
                 <i data-lucide="archive" class="w-7 h-7"></i> 執行日落打烊與封存
             </button>`;
@@ -966,6 +1005,28 @@
             lucide.createIcons();
         }
 
+        // 新增店家邏輯 (處理 Excel 貼上的資料)
+        async function addNewShop() {
+            const shop = document.getElementById('newShopName').value.trim();
+            const rawData = document.getElementById('newShopMenuData').value.trim();
+            const imageUrl = document.getElementById('newShopImg').value.trim();
+            const phone = document.getElementById('newShopPhone').value.trim();
+
+            if (!shop) return showAlert('請輸入新店家的名稱！');
+            if (!rawData) return showAlert('請在對應欄位貼上從 Excel 複製的菜單資料！');
+
+            // 解析從 Excel 複製來的資料 (通常是 Tab 分隔的字串)
+            const rows = rawData.split('\n');
+            const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
+
+            showLoading('皮客覓正在開墾新店家...');
+            const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone });
+            if (res) {
+                showAlert(res);
+                loadInitialData(); // 重新載入以顯示新店家
+            }
+        }
+
         async function saveSystemSettings() {
             const checkboxes = document.querySelectorAll('.shop-checkbox:checked');
             const openedShops = Array.from(checkboxes).map(cb => cb.value);
@@ -977,6 +1038,16 @@
             };
             showLoading('更新設定中...');
             const res = await apiCall('adminUpdateSystemSettings', data);
+            if (res) { showAlert(res); loadInitialData(); }
+        }
+
+        async function updateShopInfo() {
+            const shop = document.getElementById('updateShopName').value;
+            const imageUrl = document.getElementById('updateShopImg').value.trim();
+            const phone = document.getElementById('updateShopPhone').value.trim();
+            if (!shop) return showAlert('請選擇店家');
+            showLoading('更新店家資料中...');
+            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone });
             if (res) { showAlert(res); loadInitialData(); }
         }
 
