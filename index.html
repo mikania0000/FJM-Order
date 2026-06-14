@@ -102,7 +102,7 @@
         </div>
     </div>
 
-    <!-- 登入頁面 -->
+    <!-- 登入頁面 (緊縮版) -->
     <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto transition-transform duration-500">
         <div class="w-full max-w-md my-auto py-2">
             <div class="flex flex-col items-center mb-4">
@@ -1030,25 +1030,7 @@
 
         function renderAdminSettings() {
             let contentHtml = `
-            <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
-                <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
-                <div class="space-y-5">
-                    <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-lg focus:ring-2 focus:ring-[#006241] outline-none font-mono whitespace-pre text-slate-600"></textarea>
-                    
-                    <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填，例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <input type="text" id="newShopExtra" placeholder="店家分店或備註 (選填，例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    
-                    <button onclick="addNewShop()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
-                        <i data-lucide="plus-circle" class="w-7 h-7"></i> 建立新店家
-                    </button>
-                </div>
-            </div>
-
+            <!-- 第一項：營運開關 -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">營運開關</h3>
                 <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
@@ -1078,7 +1060,7 @@
                 <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
             </div>
 
-            <!-- 人氣數據匯入 -->
+            <!-- 第二項：人氣排行榜引擎 -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-amber-500 pl-3">人氣排行榜引擎</h3>
                 <p class="text-lg text-slate-500 mb-5 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
@@ -1087,6 +1069,7 @@
                 </button>
             </div>
 
+            <!-- 第三項：更新現有店家資訊 -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-[#006241] pl-3">更新現有店家資訊</h3>
                 <div class="space-y-4">
@@ -1101,6 +1084,27 @@
                 </div>
             </div>
 
+            <!-- 第四項：新增店家 -->
+            <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
+                <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
+                <div class="space-y-5">
+                    <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-lg focus:ring-2 focus:ring-[#006241] outline-none font-mono whitespace-pre text-slate-600"></textarea>
+                    
+                    <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填，例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <input type="text" id="newShopExtra" placeholder="店家分店或備註 (選填，例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <button onclick="addNewShop()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
+                        <i data-lucide="plus-circle" class="w-7 h-7"></i> 建立新店家
+                    </button>
+                </div>
+            </div>
+
+            <!-- 最後一項：日落打烊 -->
             <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-2xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-100 active:scale-95 transition-all mt-8 shadow-sm">
                 <i data-lucide="archive" class="w-8 h-8"></i> 執行日落打烊與封存
             </button>`;
