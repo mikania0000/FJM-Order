@@ -6,7 +6,6 @@
     <title>皮客覓 PickMeal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f4f7f6; -webkit-tap-highlight-color: transparent; }
@@ -17,6 +16,12 @@
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 自訂Lightbox捲軸樣式 */
+        .custom-scrollbar::-webkit-scrollbar { width: 14px; height: 14px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 8px; border: 3px solid rgba(0,0,0,0.8); }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.8); }
 
         @keyframes sprout-grow { 0% { transform: translateY(10px) scale(0.5); opacity: 0; } 50% { transform: translateY(-5px) scale(1.1); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
         @keyframes sprout-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -42,31 +47,31 @@
     <div id="alertBox" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full theme-light theme-text flex items-center justify-center shrink-0">
-                    <i data-lucide="info" class="w-6 h-6"></i>
+                <div class="w-12 h-12 rounded-full theme-light theme-text flex items-center justify-center shrink-0">
+                    <i data-lucide="info" class="w-7 h-7"></i>
                 </div>
-                <h3 id="alertTitle" class="text-xl font-bold text-slate-800">提示</h3>
+                <h3 id="alertTitle" class="text-2xl font-bold text-slate-800">提示</h3>
             </div>
-            <p id="alertMessage" class="text-lg text-slate-600 mb-6 leading-relaxed"></p>
-            <button onclick="closeAlert()" class="w-full theme-green text-white font-bold py-4 rounded-xl hover:bg-emerald-800 active:scale-95 transition-all text-lg">
+            <p id="alertMessage" class="text-xl text-slate-600 mb-6 leading-relaxed"></p>
+            <button onclick="closeAlert()" class="w-full theme-green text-white font-bold py-4 rounded-xl hover:bg-emerald-800 active:scale-95 transition-all text-xl">
                 確定，探險家！
             </button>
         </div>
     </div>
 
-    <!-- 確認框 (取代原生的 confirm) -->
+    <!-- 確認框 -->
     <div id="confirmBox" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
-                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" class="w-7 h-7"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800">重大操作確認</h3>
+                <h3 class="text-2xl font-bold text-slate-800">重大操作確認</h3>
             </div>
-            <p id="confirmMessage" class="text-lg text-slate-600 mb-6 leading-relaxed"></p>
+            <p id="confirmMessage" class="text-xl text-slate-600 mb-6 leading-relaxed"></p>
             <div class="flex gap-3">
-                <button onclick="closeConfirm(false)" class="flex-1 bg-slate-100 text-slate-600 font-bold py-4 rounded-xl active:scale-95 transition-all text-lg">取消</button>
-                <button onclick="closeConfirm(true)" class="flex-1 bg-red-500 text-white font-bold py-4 rounded-xl hover:bg-red-600 active:scale-95 transition-all text-lg">確定執行</button>
+                <button onclick="closeConfirm(false)" class="flex-1 bg-slate-100 text-slate-600 font-bold py-4 rounded-xl active:scale-95 transition-all text-xl">取消</button>
+                <button onclick="closeConfirm(true)" class="flex-1 bg-red-500 text-white font-bold py-4 rounded-xl hover:bg-red-600 active:scale-95 transition-all text-xl">確定執行</button>
             </div>
         </div>
     </div>
@@ -79,50 +84,58 @@
         <h2 id="loadingText" class="text-2xl font-bold theme-text tracking-wide">皮客覓準備中...</h2>
     </div>
 
-    <div id="lightbox" class="fixed inset-0 z-[60] bg-black/95 hidden flex flex-col">
-        <div class="flex justify-between items-center p-4 text-white absolute top-0 w-full z-10 bg-gradient-to-b from-black/60 to-transparent">
-            <span class="text-base font-medium opacity-80"><i data-lucide="move" class="inline w-5 h-5 mr-1"></i>雙指縮放，單指拖曳</span>
-            <button onclick="closeLightbox()" class="p-3 bg-white/20 rounded-full backdrop-blur"><i data-lucide="x" class="w-7 h-7"></i></button>
+    <!-- 菜單預覽 Lightbox (原生卷軸+放大縮小按鈕) -->
+    <div id="lightbox" class="fixed inset-0 z-[60] bg-slate-900 hidden flex flex-col">
+        <div class="flex justify-between items-center p-4 text-white absolute top-0 w-full z-10 bg-gradient-to-b from-slate-900/90 to-transparent">
+            <span class="text-lg font-bold opacity-90 drop-shadow-md flex items-center gap-2"><i data-lucide="mouse-pointer-2" class="w-6 h-6"></i>滑動捲軸查看菜單</span>
+            <button onclick="closeLightbox()" class="p-3 bg-white/20 hover:bg-white/40 rounded-full backdrop-blur transition-colors"><i data-lucide="x" class="w-8 h-8"></i></button>
         </div>
-        <div id="panzoom-container" class="flex-1 overflow-hidden relative touch-none flex items-center justify-center w-full h-full p-4">
-            <img id="lightbox-img" src="" alt="菜單" class="max-w-full max-h-full object-contain pointer-events-none">
+        
+        <div class="flex-1 overflow-auto w-full h-full pt-20 pb-24 px-4 custom-scrollbar">
+            <img id="lightbox-img" src="" alt="菜單" class="block mx-auto h-auto transition-[width] duration-300 origin-top">
+        </div>
+        
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 bg-slate-800/80 backdrop-blur-md px-6 py-3 rounded-full text-white z-20 shadow-xl border border-slate-700">
+            <button onclick="zoomImg(-20)" class="p-3 hover:bg-white/20 rounded-full active:scale-90 transition-all"><i data-lucide="zoom-out" class="w-8 h-8"></i></button>
+            <span id="zoom-level" class="text-xl font-bold font-mono w-14 text-center">100%</span>
+            <button onclick="zoomImg(20)" class="p-3 hover:bg-white/20 rounded-full active:scale-90 transition-all"><i data-lucide="zoom-in" class="w-8 h-8"></i></button>
         </div>
     </div>
 
     <!-- 登入頁面 -->
-    <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-6 transition-transform duration-500">
-        <div class="w-full max-w-md">
-            <div class="flex flex-col items-center mb-10">
-                <div class="w-32 h-32 theme-green rounded-[2.5rem] shadow-xl flex flex-col items-center justify-center relative mb-5">
-                    <svg class="absolute top-4 right-4 w-10 h-10 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-                    <svg class="absolute top-2 left-6 w-5 h-5 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
-                    <svg class="w-12 h-12 text-white mt-2 animate-bounce-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.7-4.3 1.4-4.9 2z"/></svg>
-                    <div class="absolute bottom-0 w-24 h-8 bg-white/20 rounded-t-xl backdrop-blur-sm border-t border-white/30 flex justify-center gap-2 pt-2">
-                        <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
-                        <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
+    <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto transition-transform duration-500">
+        <div class="w-full max-w-md my-auto py-2">
+            <div class="flex flex-col items-center mb-4">
+                <div class="w-20 h-20 theme-green rounded-[1.5rem] shadow-xl flex flex-col items-center justify-center relative mb-3">
+                    <svg class="absolute top-2 right-2 w-6 h-6 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    <svg class="absolute top-1.5 left-3 w-4 h-4 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
+                    <svg class="w-8 h-8 text-white mt-0.5 animate-bounce-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.7-4.3 1.4-4.9 2z"/></svg>
+                    <div class="absolute bottom-0 w-12 h-5 bg-white/20 rounded-t-xl backdrop-blur-sm border-t border-white/30 flex justify-center gap-1.5 pt-1">
+                        <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
                     </div>
                 </div>
-                <h1 class="text-5xl font-black text-slate-800 tracking-wider">皮客覓</h1>
-                <p class="text-base font-bold theme-text tracking-[0.3em] mt-2 uppercase">PickMeal</p>
-                <p class="text-base text-slate-500 mt-3 font-medium">探險家，準備好出發採集物資了嗎？</p>
+                <h1 class="text-3xl font-black text-slate-800 tracking-wider">皮客覓</h1>
+                <p class="text-sm font-bold theme-text tracking-[0.3em] mt-0.5 uppercase">PickMeal</p>
+                <p class="text-sm text-slate-500 mt-1 font-medium">探險家，準備好出發採集物資了嗎？</p>
             </div>
 
-            <div class="bg-white rounded-3xl shadow-sm p-6 border border-slate-100">
-                <div class="space-y-5">
+            <div class="bg-white rounded-2xl shadow-sm p-4 border border-slate-100">
+                <div class="space-y-3">
                     <div>
-                        <label class="block text-base font-bold text-slate-500 mb-2 ml-1">探險家帳號</label>
-                        <input type="text" id="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="請輸入帳號">
+                        <label class="block text-sm font-bold text-slate-500 mb-1 ml-1">探險家帳號</label>
+                        <input type="text" id="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="請輸入帳號">
                     </div>
                     <div>
-                        <label class="block text-base font-bold text-slate-500 mb-2 ml-1">通關密碼</label>
-                        <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="請輸入密碼">
+                        <label class="block text-sm font-bold text-slate-500 mb-1 ml-1">通關密碼</label>
+                        <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="請輸入密碼">
                     </div>
                     <div>
-                        <label class="block text-base font-bold text-slate-500 mb-2 ml-1">稱呼 <span class="text-slate-400 font-normal">(選填)</span></label>
-                        <input type="text" id="displayName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="您希望皮客覓怎麼稱呼您？">
+                        <label class="block text-sm font-bold text-slate-500 mb-1 ml-1">稱呼 <span class="text-slate-400 font-normal">(選填)</span></label>
+                        <input type="text" id="displayName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="您希望皮客覓怎麼稱呼您？">
                     </div>
-                    <button onclick="login()" class="w-full theme-green text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/20 mt-6 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all text-xl">
-                        <i data-lucide="log-in" class="w-6 h-6"></i> 登入基地
+                    <button onclick="login()" class="w-full theme-green text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 mt-2 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all text-lg">
+                        <i data-lucide="log-in" class="w-5 h-5"></i> 登入基地
                     </button>
                 </div>
             </div>
@@ -133,65 +146,65 @@
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
-                <i data-lucide="sprout" class="w-8 h-8 theme-text"></i>
+                <i data-lucide="sprout" class="w-9 h-9 theme-text"></i>
                 <div>
-                    <h1 class="text-2xl font-black text-slate-800 leading-tight">皮客覓</h1>
-                    <p class="text-[11px] theme-text font-bold tracking-widest leading-none">PICKMEAL</p>
+                    <h1 class="text-3xl font-black text-slate-800 leading-tight">皮客覓</h1>
+                    <p class="text-[12px] theme-text font-bold tracking-widest leading-none mt-1">PICKMEAL</p>
                 </div>
             </div>
             <div class="text-right">
-                <div class="text-lg font-bold text-slate-700" id="userGreeting">探險家</div>
-                <div class="text-sm text-slate-500 mt-1 font-medium" id="appDeadline">截止時間: 載入中</div>
+                <div class="text-xl font-bold text-slate-700" id="userGreeting">探險家</div>
+                <div class="text-base text-slate-500 mt-1 font-medium" id="appDeadline">截止時間: 載入中</div>
             </div>
         </header>
         
         <!-- 打氣問候語區塊 -->
         <div class="bg-white px-5 py-3 border-b border-slate-100 flex items-center gap-2 z-10 shadow-sm">
-            <i data-lucide="sun" class="w-6 h-6 text-amber-500"></i>
-            <p class="text-base font-bold text-slate-600">探險家，今天想尋覓什麼美味呢？</p>
+            <i data-lucide="sun" class="w-7 h-7 text-amber-500"></i>
+            <p class="text-lg font-bold text-slate-600">探險家，今天想尋覓什麼美味呢？</p>
         </div>
 
         <main id="mainContent" class="flex-1 overflow-y-auto no-scrollbar pb-safe w-full max-w-3xl mx-auto"></main>
 
         <nav class="bg-white border-t border-slate-100 px-6 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-between items-center fixed bottom-0 w-full max-w-3xl left-1/2 -translate-x-1/2 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] rounded-t-3xl">
             <button onclick="switchTab('menu')" id="tab-menu" class="flex flex-col items-center p-2 flex-1 theme-text transition-transform active:scale-90">
-                <i data-lucide="map" class="w-7 h-7 mb-1"></i>
-                <span class="text-sm font-bold">探索菜單</span>
+                <i data-lucide="map" class="w-8 h-8 mb-1"></i>
+                <span class="text-base font-bold">探索菜單</span>
             </button>
             <button onclick="switchTab('cart')" id="tab-cart" class="flex flex-col items-center p-2 flex-1 text-slate-400 hover:text-slate-600 transition-transform active:scale-90 relative">
-                <i data-lucide="backpack" class="w-7 h-7 mb-1"></i>
-                <span class="text-sm font-bold">物資背包</span>
-                <span id="cartBadge" class="absolute top-1 right-1/4 translate-x-2 -translate-y-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
+                <i data-lucide="backpack" class="w-8 h-8 mb-1"></i>
+                <span class="text-base font-bold">物資背包</span>
+                <span id="cartBadge" class="absolute top-1 right-1/4 translate-x-3 -translate-y-1 bg-red-500 text-white text-sm font-bold px-2 py-0.5 rounded-full hidden">0</span>
             </button>
             <button onclick="switchTab('profile')" id="tab-profile" class="flex flex-col items-center p-2 flex-1 text-slate-400 hover:text-slate-600 transition-transform active:scale-90">
-                <i data-lucide="user" class="w-7 h-7 mb-1"></i>
-                <span class="text-sm font-bold">指揮所</span>
+                <i data-lucide="user" class="w-8 h-8 mb-1"></i>
+                <span class="text-base font-bold">指揮所</span>
             </button>
         </nav>
     </div>
 
     <!-- 點餐彈窗 -->
-    <div id="itemModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
+    <div id="itemModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
         <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
-            <div class="w-14 h-1.5 bg-slate-200 rounded-full mx-auto mb-5 shrink-0"></div>
+            <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-5 shrink-0"></div>
             <div class="flex justify-between items-start mb-5 shrink-0">
                 <div class="flex-1 pr-4">
-                    <h2 id="modalItemName" class="text-2xl font-black text-slate-800 leading-snug break-words"></h2>
-                    <p id="modalItemPrice" class="theme-text font-black text-2xl mt-2"></p>
+                    <h2 id="modalItemName" class="text-3xl font-black text-slate-800 leading-snug break-words"></h2>
+                    <p id="modalItemPrice" class="theme-text font-black text-3xl mt-2"></p>
                 </div>
-                <button onclick="closeItemModal()" class="p-3 bg-slate-100 rounded-full text-slate-500 shrink-0"><i data-lucide="x" class="w-7 h-7"></i></button>
+                <button onclick="closeItemModal()" class="p-3 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 shrink-0 transition-colors"><i data-lucide="x" class="w-8 h-8"></i></button>
             </div>
             
             <div class="flex-1 overflow-y-auto no-scrollbar -mx-2 px-2" id="modalOptionsArea"></div>
 
             <div class="mt-6 pt-5 border-t border-slate-100 shrink-0 flex gap-4 items-center">
                 <div class="flex items-center bg-slate-100 rounded-xl p-1.5">
-                    <button onclick="adjustQty(-1)" class="w-12 h-12 flex items-center justify-center text-slate-600 font-bold text-3xl active:bg-slate-200 rounded-lg">-</button>
-                    <span id="modalQty" class="w-10 text-center font-bold text-xl text-slate-800">1</span>
-                    <button onclick="adjustQty(1)" class="w-12 h-12 flex items-center justify-center text-slate-600 font-bold text-3xl active:bg-slate-200 rounded-lg">+</button>
+                    <button onclick="adjustQty(-1)" class="w-14 h-14 flex items-center justify-center text-slate-600 font-bold text-4xl active:bg-slate-200 rounded-lg pb-1">-</button>
+                    <span id="modalQty" class="w-12 text-center font-bold text-2xl text-slate-800">1</span>
+                    <button onclick="adjustQty(1)" class="w-14 h-14 flex items-center justify-center text-slate-600 font-bold text-4xl active:bg-slate-200 rounded-lg pb-1">+</button>
                 </div>
-                <button onclick="addToCart()" class="flex-1 theme-green text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 active:scale-95 transition-transform text-xl">
-                    <i data-lucide="plus" class="w-6 h-6"></i> 放入背包 <span id="modalBtnPrice" class="ml-2 bg-white/20 px-3 py-1 rounded text-lg"></span>
+                <button onclick="addToCart()" class="flex-1 theme-green text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 active:scale-95 transition-transform text-2xl">
+                    <i data-lucide="plus" class="w-7 h-7"></i> 放入背包 <span id="modalBtnPrice" class="ml-2 bg-white/20 px-3 py-1 rounded text-xl"></span>
                 </button>
             </div>
         </div>
@@ -208,8 +221,6 @@
             cart: [], currentTab: 'menu', activeShop: '',
             tempItem: null, adminProxyName: '', sortByPop: false
         };
-
-        let pzInstance = null; let pzWheelHandler = null;
 
         lucide.createIcons();
 
@@ -374,26 +385,26 @@
             if (!state.system.isOpen) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full p-8 text-center text-slate-500">
-                        <div class="w-24 h-24 theme-light rounded-full flex items-center justify-center mb-5">
-                            <i data-lucide="moon" class="w-12 h-12 theme-text"></i>
+                        <div class="w-28 h-28 theme-light rounded-full flex items-center justify-center mb-6">
+                            <i data-lucide="moon" class="w-14 h-14 theme-text"></i>
                         </div>
-                        <h2 class="text-3xl font-bold text-slate-700 mb-3">日落了</h2>
-                        <p class="text-xl leading-relaxed">皮客覓已休息，<br>目前基地不開放物資採集。</p>
+                        <h2 class="text-4xl font-bold text-slate-700 mb-4">日落了</h2>
+                        <p class="text-2xl leading-relaxed">皮客覓已休息，<br>目前基地不開放物資採集。</p>
                     </div>`;
                 return;
             }
 
-            let html = `<div class="p-4 space-y-4">`;
+            let html = `<div class="p-4 space-y-5">`;
 
             if (state.user.role === '管理') {
                 html += `
-                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-                    <div class="absolute right-0 top-0 w-20 h-20 bg-amber-100 rounded-bl-full -z-10"></div>
+                <div class="bg-amber-50 border border-amber-200 rounded-3xl p-5 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-amber-100 rounded-bl-full -z-10"></div>
                     <div class="flex items-center gap-2 mb-3">
-                        <i data-lucide="headset" class="w-7 h-7 text-amber-600"></i>
-                        <span class="font-bold text-amber-800 text-lg">指揮官呼叫支援 (代點模式)</span>
+                        <i data-lucide="headset" class="w-8 h-8 text-amber-600"></i>
+                        <span class="font-bold text-amber-800 text-xl">指揮官呼叫支援 (代點模式)</span>
                     </div>
-                    <input type="text" id="proxyNameInput" value="${state.adminProxyName}" onchange="state.adminProxyName = this.value" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="輸入代點姓名 (留空則為自己點)">
+                    <input type="text" id="proxyNameInput" value="${state.adminProxyName}" onchange="state.adminProxyName = this.value" class="w-full bg-white border border-amber-200 rounded-xl px-4 py-4 text-xl focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="輸入代點姓名 (留空則為自己點)">
                 </div>`;
             }
 
@@ -401,7 +412,7 @@
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-0 z-10">
                     ${state.system.openedShops.map(shop => `
                         <button onclick="state.activeShop='${shop}'; renderMenuTab(document.getElementById('mainContent'))" 
-                            class="whitespace-nowrap px-6 py-3 rounded-2xl font-bold text-lg transition-all ${state.activeShop === shop ? 'theme-green text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}">
+                            class="whitespace-nowrap px-6 py-4 rounded-2xl font-bold text-xl transition-all ${state.activeShop === shop ? 'theme-green text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'}">
                             ${shop}
                         </button>
                     `).join('')}
@@ -409,23 +420,21 @@
 
             const imgUrl = state.data.shopImages[state.activeShop];
             const phone = state.data.shopPhones[state.activeShop];
-            // 讀取店家額外資訊(分店名或備註)
             const extraName = state.data.shopExtraNames ? state.data.shopExtraNames[state.activeShop] : '';
             
-            // 判斷要顯示在按鈕上的文字：如果有店家又有電話，就合併顯示；不然就單獨顯示
             let phoneBtnText = '';
             if (extraName && phone) phoneBtnText = `${extraName} ． ${phone}`;
             else if (extraName) phoneBtnText = extraName;
             else if (phone) phoneBtnText = phone;
 
             if (imgUrl || phoneBtnText) {
-                html += `<div class="flex gap-3">`;
+                html += `<div class="flex gap-4 mt-2">`;
                 if(imgUrl) {
                     html += `
-                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition-transform min-w-0" onclick="openLightbox('${imgUrl}')">
+                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0" onclick="openLightbox('${imgUrl}')">
                         <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-5 h-5 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-base truncate">查看菜單</span>
+                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-6 h-6 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-lg truncate">查看菜單</span>
                         </div>
                     </div>`;
                 }
@@ -435,9 +444,9 @@
                     const icon = phone ? `phone` : `store`;
                     
                     html += `
-                    <${asTag} class="${phone ? 'cursor-pointer active:scale-95' : ''} bg-slate-800 text-white rounded-2xl p-4 shadow-sm flex items-center justify-center gap-2 transition-transform px-4 flex-1 min-w-0">
-                        <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
-                        <span class="truncate font-bold text-base">${phoneBtnText}</span>
+                    <${asTag} class="${phone ? 'cursor-pointer hover:bg-slate-700 active:scale-95' : ''} bg-slate-800 text-white rounded-2xl p-4 shadow-sm flex items-center justify-center gap-2 transition-all px-4 flex-1 min-w-0">
+                        <i data-lucide="${icon}" class="w-6 h-6 shrink-0"></i>
+                        <span class="truncate font-bold text-lg">${phoneBtnText}</span>
                     </${closeTag}>`;
                 }
                 html += `</div>`;
@@ -445,12 +454,12 @@
 
             html += `
             <div class="flex justify-between items-center px-2 mb-2 mt-4 border-t border-slate-200 pt-4">
-                <span class="text-base font-bold text-slate-500">選擇美味</span>
+                <span class="text-xl font-bold text-slate-500">選擇美味</span>
                 <label class="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform">
-                    <span class="text-sm font-bold ${state.sortByPop ? 'text-red-500' : 'text-slate-400'}"><i data-lucide="flame" class="w-4 h-4 inline pb-0.5"></i> 人氣熱銷排序</span>
+                    <span class="text-lg font-bold ${state.sortByPop ? 'text-red-500' : 'text-slate-400'}"><i data-lucide="flame" class="w-5 h-5 inline pb-0.5"></i> 人氣熱銷排序</span>
                     <div class="relative inline-flex items-center">
                         <input type="checkbox" class="sr-only peer" onchange="state.sortByPop = this.checked; renderMenuTab(document.getElementById('mainContent'));" ${state.sortByPop ? 'checked' : ''}>
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                        <div class="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-500"></div>
                     </div>
                 </label>
             </div>`;
@@ -490,12 +499,12 @@
                 processedItems.sort((a, b) => b.pop - a.pop);
                 
                 html += `
-                <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-red-100 overflow-hidden" open>
-                    <summary class="px-5 py-5 font-black text-xl text-red-700 cursor-pointer flex justify-between items-center bg-red-50 group-open:bg-red-500 group-open:text-white transition-colors">
-                        <span class="flex items-center gap-2"><i data-lucide="flame" class="w-6 h-6"></i> 人氣排行榜</span>
-                        <i data-lucide="chevron-down" class="w-7 h-7 transition-transform group-open:rotate-180"></i>
+                <details class="group bg-white mb-5 rounded-3xl shadow-sm border border-red-200 overflow-hidden" open>
+                    <summary class="px-5 py-5 font-black text-[22px] text-red-800 cursor-pointer flex justify-between items-center bg-red-50 hover:bg-red-100 group-open:bg-red-500 group-open:text-white transition-colors border-b border-red-100">
+                        <span class="flex items-center gap-2"><i data-lucide="flame" class="w-7 h-7"></i> 人氣排行榜</span>
+                        <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180"></i>
                     </summary>
-                    <div class="divide-y divide-slate-50 bg-white">
+                    <div class="divide-y divide-slate-100 bg-white">
                 `;
                 processedItems.forEach(pItem => {
                     html += renderMenuItemRow(pItem);
@@ -513,12 +522,12 @@
                     const isOpen = catIndex === 0 ? 'open' : ''; 
                     
                     html += `
-                    <details class="group bg-white mb-4 rounded-3xl shadow-sm border border-slate-100 overflow-hidden" ${isOpen}>
-                        <summary class="px-5 py-5 font-black text-xl text-slate-700 cursor-pointer flex justify-between items-center bg-slate-50 group-open:bg-[#006241] group-open:text-white transition-colors">
+                    <details class="group bg-white mb-5 rounded-3xl shadow-sm border border-slate-200 overflow-hidden" ${isOpen}>
+                        <summary class="px-5 py-5 font-black text-[22px] text-slate-800 cursor-pointer flex justify-between items-center bg-slate-100 hover:bg-slate-200 group-open:bg-[#006241] group-open:text-white transition-colors border-b border-slate-200">
                             ${cat}
-                            <i data-lucide="chevron-down" class="w-7 h-7 transition-transform group-open:rotate-180"></i>
+                            <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180"></i>
                         </summary>
-                        <div class="divide-y divide-slate-50 bg-white">
+                        <div class="divide-y divide-slate-100 bg-white">
                     `;
 
                     groupedMenu[cat].forEach(pItem => {
@@ -536,18 +545,18 @@
 
         function renderMenuItemRow(pItem) {
             return `
-            <div onclick="openItemModal(${pItem.rawIndex})" class="px-5 py-5 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors gap-3">
+            <div onclick="openItemModal(${pItem.rawIndex})" class="px-5 py-5 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors gap-4">
                 <div class="flex-1 min-w-0 pr-2">
-                    <h4 class="font-bold text-slate-800 text-[19px] leading-snug mb-1 break-words">
+                    <h4 class="font-bold text-slate-800 text-[21px] leading-snug mb-1 break-words">
                         ${pItem.rawItem['品項']}
-                        ${pItem.pop > 0 ? `<span class="inline-flex items-center gap-1 text-sm font-bold text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full ml-1 align-middle whitespace-nowrap"><i data-lucide="flame" class="w-4 h-4"></i>${pItem.pop}</span>` : ''}
+                        ${pItem.pop > 0 ? `<span class="inline-flex items-center gap-1 text-base font-bold text-red-500 bg-red-50 px-2.5 py-0.5 rounded-full ml-1 align-middle whitespace-nowrap"><i data-lucide="flame" class="w-4 h-4"></i>${pItem.pop}</span>` : ''}
                     </h4>
-                    ${pItem.priceLabels.length > 1 ? `<p class="text-base text-slate-400 mt-1">多種規格可選</p>` : ''}
+                    ${pItem.priceLabels.length > 1 ? `<p class="text-lg text-slate-400 mt-1">多種規格可選</p>` : ''}
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                    <span class="font-black theme-text text-2xl tracking-tight">$${pItem.basePrice}</span>
+                    <span class="font-black theme-text text-[28px] tracking-tight">$${pItem.basePrice}</span>
                     <div class="w-12 h-12 rounded-full theme-light flex items-center justify-center shrink-0">
-                        <i data-lucide="plus" class="w-6 h-6 theme-text"></i>
+                        <i data-lucide="plus" class="w-7 h-7 theme-text"></i>
                     </div>
                 </div>
             </div>`;
@@ -581,11 +590,11 @@
                         
                         optionsHtml += `
                         <div class="mb-6">
-                            <h4 class="text-base font-bold text-slate-500 mb-3 border-l-4 border-[#006241] pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
+                            <h4 class="text-lg font-bold text-slate-500 mb-3 border-l-4 border-[#006241] pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
                             <div class="flex flex-wrap gap-3">
                                 <label class="relative cursor-pointer">
                                     <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
-                                    <div class="px-5 py-3 rounded-xl border-2 border-slate-200 text-lg font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
+                                    <div class="px-6 py-4 rounded-xl border-2 border-slate-200 text-xl font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
                                         ${key.includes('單價') ? `單價 (+$${price})` : `${key} (+$${price})`}
                                     </div>
                                 </label>
@@ -600,11 +609,11 @@
                         state.tempItem.selectedSpec[key] = '';
                         optionsHtml += `
                         <div class="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                            <h4 class="text-base font-bold text-slate-600 mb-3 flex justify-between items-center">
+                            <h4 class="text-lg font-bold text-slate-600 mb-3 flex justify-between items-center">
                                 <span>${key}</span>
-                                <span class="text-sm font-normal text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">必選</span>
+                                <span class="text-base font-normal text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">必選</span>
                             </h4>
-                            <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-lg font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
+                            <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-xl font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
                                 <option value="" disabled selected>-- 請選擇 --</option>`;
                         
                         options.forEach(opt => {
@@ -723,37 +732,37 @@
             if (state.cart.length === 0) {
                 container.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <div class="w-32 h-32 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
-                            <div class="absolute bottom-4 w-16 h-12 bg-slate-300 rounded-b-xl"></div>
-                            <div class="absolute bottom-16 w-4 h-4 bg-slate-200 rounded-full"></div>
+                        <div class="w-36 h-36 bg-slate-100 rounded-full flex items-center justify-center mb-6 relative">
+                            <div class="absolute bottom-4 w-20 h-14 bg-slate-300 rounded-b-xl"></div>
+                            <div class="absolute bottom-20 w-5 h-5 bg-slate-200 rounded-full"></div>
                         </div>
-                        <h2 class="text-2xl font-bold text-slate-700 mb-2">物資背包空空的</h2>
-                        <p class="text-slate-500 text-lg">趕快去菜單播下美味的種子吧！</p>
-                        <button onclick="switchTab('menu')" class="mt-8 px-8 py-4 theme-light theme-text font-bold text-xl rounded-xl active:scale-95 transition-transform">去探索菜單</button>
+                        <h2 class="text-3xl font-bold text-slate-700 mb-3">物資背包空空的</h2>
+                        <p class="text-slate-500 text-xl">趕快去菜單播下美味的種子吧！</p>
+                        <button onclick="switchTab('menu')" class="mt-8 px-10 py-5 theme-light theme-text font-bold text-2xl rounded-2xl active:scale-95 transition-transform">去探索菜單</button>
                     </div>`;
                 return;
             }
 
             let total = 0;
             let html = `<div class="p-4 pb-36">
-                <h2 class="text-2xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="backpack" class="w-8 h-8 theme-text"></i> 已收集的物資</h2>
+                <h2 class="text-3xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="backpack" class="w-8 h-8 theme-text"></i> 已收集的物資</h2>
                 <div class="space-y-4">`;
 
             state.cart.forEach((item, idx) => {
                 const itemTotal = item.price * item.quantity;
                 total += itemTotal;
                 html += `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 animate-sprout" style="animation-delay: ${idx * 0.05}s">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex gap-4 animate-sprout" style="animation-delay: ${idx * 0.05}s">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-2">
-                            <h4 class="font-bold text-slate-800 text-xl">${item.name}</h4>
-                            <button onclick="state.cart.splice(${idx}, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent'));" class="text-red-400 p-2 hover:text-red-600 active:scale-90 bg-red-50 rounded-full"><i data-lucide="trash-2" class="w-6 h-6"></i></button>
+                            <h4 class="font-bold text-slate-800 text-2xl">${item.name}</h4>
+                            <button onclick="state.cart.splice(${idx}, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent'));" class="text-red-400 p-2 hover:text-red-600 hover:bg-red-100 active:scale-90 bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-7 h-7"></i></button>
                         </div>
-                        <p class="text-base text-slate-500 mb-3">${item.shop} ${item.spec ? `· ${item.spec}` : ''}</p>
-                        ${item.name_override ? `<p class="text-sm bg-amber-100 text-amber-800 inline-block px-3 py-1 rounded font-bold mb-3">代點: ${item.name_override}</p>` : ''}
+                        <p class="text-lg text-slate-500 mb-3">${item.shop} ${item.spec ? `· ${item.spec}` : ''}</p>
+                        ${item.name_override ? `<p class="text-base bg-amber-100 text-amber-800 inline-block px-3 py-1 rounded font-bold mb-3">代點: ${item.name_override}</p>` : ''}
                         <div class="flex justify-between items-center mt-2">
-                            <span class="text-base font-bold text-slate-400">$${item.price} x ${item.quantity}</span>
-                            <span class="font-black theme-text text-2xl">$${itemTotal}</span>
+                            <span class="text-xl font-bold text-slate-400">$${item.price} x ${item.quantity}</span>
+                            <span class="font-black theme-text text-3xl">$${itemTotal}</span>
                         </div>
                     </div>
                 </div>`;
@@ -761,13 +770,13 @@
 
             html += `</div></div>
             <div class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-full max-w-3xl left-1/2 -translate-x-1/2 p-4 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent z-20">
-                <div class="bg-slate-800 rounded-3xl p-5 flex justify-between items-center shadow-2xl">
+                <div class="bg-slate-800 rounded-3xl p-6 flex justify-between items-center shadow-2xl">
                     <div class="text-white">
-                        <p class="text-base opacity-70 mb-1">預估總計</p>
-                        <p class="text-4xl font-black">$${total}</p>
+                        <p class="text-lg opacity-80 mb-1">預估總計</p>
+                        <p class="text-[40px] font-black leading-none">$${total}</p>
                     </div>
-                    <button onclick="submitOrder()" class="theme-green text-white font-bold px-8 py-4 rounded-2xl flex items-center gap-3 hover:bg-emerald-800 active:scale-95 transition-transform shadow-lg shadow-emerald-900/50 text-xl">
-                        發射洋蔥號 <i data-lucide="rocket" class="w-6 h-6"></i>
+                    <button onclick="submitOrder()" class="theme-green text-white font-bold px-8 py-5 rounded-2xl flex items-center gap-3 hover:bg-emerald-800 active:scale-95 transition-transform shadow-lg shadow-emerald-900/50 text-2xl">
+                        發射洋蔥號 <i data-lucide="rocket" class="w-8 h-8"></i>
                     </button>
                 </div>
             </div>`;
@@ -800,33 +809,33 @@
             let html = `<div class="p-4 space-y-6 pb-safe">
                 <div class="bg-[#006241] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
                     <svg class="absolute -right-4 -top-4 w-32 h-32 opacity-10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z"/></svg>
-                    <h2 class="text-lg font-bold opacity-80 mb-1">${state.user.role === '管理' ? '指揮官' : '探險家'}</h2>
-                    <h1 class="text-4xl font-black tracking-wide mb-5">${state.user.name}</h1>
-                    <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-lg font-bold py-2 px-5 rounded-xl transition-colors">切換帳號</button>
+                    <h2 class="text-xl font-bold opacity-80 mb-1">${state.user.role === '管理' ? '指揮官' : '探險家'}</h2>
+                    <h1 class="text-[40px] font-black tracking-wide mb-6">${state.user.name}</h1>
+                    <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-xl font-bold py-2.5 px-6 rounded-xl transition-colors">切換帳號</button>
                 </div>`;
 
             html += `
                 <div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="file-text" class="w-7 h-7 theme-text"></i> 今日個人紀錄</h3>
+                    <h3 class="text-3xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="file-text" class="w-8 h-8 theme-text"></i> 今日個人紀錄</h3>
                     ${state.data.userOrders.length === 0 ? 
-                        `<div class="bg-white p-6 rounded-3xl border border-slate-100 text-center text-slate-400 text-lg shadow-sm">今天還沒有培育任何餐點喔！</div>` : 
+                        `<div class="bg-white p-6 rounded-3xl border border-slate-100 text-center text-slate-400 text-xl shadow-sm">今天還沒有培育任何餐點喔！</div>` : 
                         `<div class="space-y-4">
                             ${state.data.userOrders.map(order => `
-                                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
-                                    ${order['繳費情形'] === '已繳費' ? `<div class="absolute top-0 right-0 w-2 h-full bg-emerald-400"></div>` : `<div class="absolute top-0 right-0 w-2 h-full bg-amber-400"></div>`}
-                                    <h4 class="font-bold text-slate-800 mb-1 text-xl">${order['品項']} <span class="text-base text-slate-500 font-normal">x${order['數量']}</span></h4>
-                                    <p class="text-base text-slate-500 mb-3">${order['店家']} ${order['規格']||order['訂購內容'] ? `· ${order['規格']||order['訂購內容']}` : ''}</p>
+                                <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                                    ${order['繳費情形'] === '已繳費' ? `<div class="absolute top-0 right-0 w-2.5 h-full bg-emerald-400"></div>` : `<div class="absolute top-0 right-0 w-2.5 h-full bg-amber-400"></div>`}
+                                    <h4 class="font-bold text-slate-800 mb-2 text-[22px]">${order['品項']} <span class="text-lg text-slate-500 font-normal">x${order['數量']}</span></h4>
+                                    <p class="text-lg text-slate-500 mb-4">${order['店家']} ${order['規格']||order['訂購內容'] ? `· ${order['規格']||order['訂購內容']}` : ''}</p>
                                     <div class="flex justify-between items-end mt-4 border-t border-slate-50 pt-4">
                                         <div class="flex gap-2">
-                                            <span class="text-sm font-bold px-3 py-1.5 rounded ${order['繳費情形'] === '已繳費' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${order['繳費情形'] || '未繳費'}</span>
-                                            <span class="text-sm font-bold px-3 py-1.5 rounded ${order['取餐情形'] === '已取餐' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">${order['取餐情形'] || '未取餐'}</span>
+                                            <span class="text-base font-bold px-3 py-1.5 rounded ${order['繳費情形'] === '已繳費' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">${order['繳費情形'] || '未繳費'}</span>
+                                            <span class="text-base font-bold px-3 py-1.5 rounded ${order['取餐情形'] === '已取餐' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">${order['取餐情形'] || '未取餐'}</span>
                                         </div>
                                         <div class="text-right">
-                                            <p class="font-black text-slate-800 text-2xl leading-none">$${order['小計']}</p>
+                                            <p class="font-black text-slate-800 text-3xl leading-none">$${order['小計']}</p>
                                         </div>
                                     </div>
                                     ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? 
-                                        `<button onclick="showConfirm('確定要取消這筆物資派遣嗎？', () => deleteOrder('${order['訂單編號']}'))" class="absolute top-3 right-4 text-slate-300 hover:text-red-500 bg-slate-50 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>` : ''}
+                                        `<button onclick="showConfirm('確定要取消這筆物資派遣嗎？', () => deleteOrder('${order['訂單編號']}'))" class="absolute top-3 right-5 text-slate-300 hover:text-red-500 hover:bg-red-50 bg-slate-50 p-2.5 rounded-full transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>` : ''}
                                 </div>
                             `).join('')}
                         </div>`
@@ -836,20 +845,20 @@
             if (state.user.role === '管理') {
                 html += `
                 <div class="mt-10 pt-8 border-t-2 border-dashed border-slate-200">
-                    <h3 class="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><i data-lucide="command" class="w-7 h-7 theme-text"></i> 指揮官控制台</h3>
+                    <h3 class="text-3xl font-black text-slate-800 mb-6 flex items-center gap-2"><i data-lucide="command" class="w-8 h-8 theme-text"></i> 指揮官控制台</h3>
                     
                     <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">發餐與核銷檯</span>
+                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all">
+                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-8 h-8 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-xl">發餐與核銷檯</span>
                         </button>
-                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">實戰訂購清單</span>
+                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all">
+                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-8 h-8 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-xl">實戰訂購清單</span>
                         </button>
-                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform col-span-2">
-                            <div class="w-14 h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-7 h-7 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">基地系統設定</span>
+                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all col-span-2">
+                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-8 h-8 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-xl">基地系統設定</span>
                         </button>
                     </div>
                 </div>`;
@@ -880,21 +889,21 @@
             let contentHtml = '';
             
             if (summaryByUser.length === 0) {
-                contentHtml = `<div class="text-center text-slate-500 mt-10 text-xl">今日尚無物資紀錄</div>`;
+                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">今日尚無物資紀錄</div>`;
             } else {
                 summaryByUser.forEach(user => {
                     const isAllDone = user.paid && user.taken;
                     const orderIds = user.orders.map(o => o['訂單編號']).join(','); 
                     
                     contentHtml += `
-                    <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-5 mb-5 relative overflow-hidden transition-colors">
-                        ${isAllDone ? `<div class="absolute top-0 right-0 w-20 h-20 bg-emerald-100 rounded-bl-full flex items-start justify-end p-4"><i data-lucide="check-circle" class="w-7 h-7 text-emerald-500"></i></div>` : ''}
+                    <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-6 mb-5 relative overflow-hidden transition-colors">
+                        ${isAllDone ? `<div class="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-bl-full flex items-start justify-end p-5"><i data-lucide="check-circle" class="w-8 h-8 text-emerald-500"></i></div>` : ''}
                         
                         <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
-                            <h3 class="text-2xl font-black text-slate-800">${user.name}</h3>
+                            <h3 class="text-3xl font-black text-slate-800">${user.name}</h3>
                             <div class="text-right">
-                                <p class="text-sm text-slate-400 font-bold mb-1">應收總計</p>
-                                <p class="text-4xl font-black theme-text leading-none">$${user.total}</p>
+                                <p class="text-base text-slate-400 font-bold mb-1">應收總計</p>
+                                <p class="text-[40px] font-black theme-text leading-none">$${user.total}</p>
                             </div>
                         </div>
                         
@@ -904,24 +913,24 @@
                         contentHtml += `
                             <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl">
                                 <div class="flex-1 min-w-0 pr-2">
-                                    <span class="text-xs font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
-                                    <span class="font-bold text-slate-700 text-lg align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
-                                    ${order['規格']||order['訂購內容'] ? `<p class="text-base text-slate-500 mt-1 break-words">${order['規格']||order['訂購內容']}</p>` : ''}
+                                    <span class="text-sm font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
+                                    <span class="font-bold text-slate-700 text-xl align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
+                                    ${order['規格']||order['訂購內容'] ? `<p class="text-lg text-slate-500 mt-1 break-words">${order['規格']||order['訂購內容']}</p>` : ''}
                                 </div>
-                                <span class="font-bold text-slate-700 text-xl shrink-0 ml-2">$${order['小計']}</span>
+                                <span class="font-bold text-slate-700 text-2xl shrink-0 ml-2">$${order['小計']}</span>
                             </div>`;
                     });
 
                     contentHtml += `
                         </div>
-                        <div class="flex gap-3 mt-5 pt-4 border-t border-slate-100">
+                        <div class="flex gap-4 mt-6 pt-5 border-t border-slate-100">
                             <button onclick="adminQuickUpdateMultiple('${orderIds}', 'pay', '${user.paid ? '未繳費' : '已繳費'}', this)" 
-                                class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.paid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
-                                <i data-lucide="dollar-sign" class="w-6 h-6"></i> ${user.paid ? '已收全額' : '一鍵收滿全額'}
+                                class="flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${user.paid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
+                                <i data-lucide="dollar-sign" class="w-7 h-7"></i> ${user.paid ? '已收全額' : '一鍵收滿全額'}
                             </button>
                             <button onclick="adminQuickUpdateMultiple('${orderIds}', 'take', '${user.taken ? '未取餐' : '已取餐'}', this)" 
-                                class="flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 ${user.taken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
-                                <i data-lucide="coffee" class="w-6 h-6"></i> ${user.taken ? '已全給餐' : '一鍵全部給餐'}
+                                class="flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${user.taken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
+                                <i data-lucide="coffee" class="w-7 h-7"></i> ${user.taken ? '已全給餐' : '一鍵全部給餐'}
                             </button>
                         </div>
                     </div>`;
@@ -931,8 +940,8 @@
             container.innerHTML = `
             <div class="p-4 pb-safe bg-slate-50 min-h-full">
                 <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">發餐與核銷檯</h2>
+                    <button onclick="switchTab('profile')" class="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-90 transition-all"><i data-lucide="arrow-left" class="w-8 h-8"></i></button>
+                    <h2 class="text-3xl font-black text-slate-800">發餐與核銷檯</h2>
                 </div>
                 ${contentHtml}
             </div>`;
@@ -942,8 +951,8 @@
         async function adminQuickUpdateMultiple(orderIds, type, status, btnElement) {
             const originalClass = btnElement.className;
             const originalText = btnElement.innerHTML;
-            btnElement.className = 'flex-1 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center gap-2 bg-slate-100 text-slate-400';
-            btnElement.innerHTML = '<i class="lucide-loader w-6 h-6 animate-spin"></i> 處理中';
+            btnElement.className = 'flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 bg-slate-100 text-slate-400';
+            btnElement.innerHTML = '<i class="lucide-loader w-7 h-7 animate-spin"></i> 處理中';
 
             const res = await apiCall('adminUpdateStatus', { orderIds: orderIds.split(','), type, status });
             if (res) {
@@ -959,7 +968,7 @@
             const shops = Object.keys(summaryByShop);
             
             if (shops.length === 0) {
-                contentHtml = `<div class="text-center text-slate-500 mt-10 text-xl">今日尚無訂單</div>`;
+                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">今日尚無訂單</div>`;
             } else {
                 shops.forEach(shop => {
                     const shopData = summaryByShop[shop];
@@ -976,10 +985,10 @@
                         <div class="flex flex-col gap-3 mb-5 border-b border-slate-100 pb-4">
                             <h3 class="text-3xl font-black text-slate-800 bg-slate-100 px-4 py-2 rounded-xl inline-block w-max">${shop}</h3>
                             ${phoneBtnText ? `
-                                <${phone ? `a href="tel:${phone}"` : `div`} class="flex items-center justify-center gap-2 bg-slate-800 text-white text-lg font-bold px-4 py-3 rounded-xl ${phone ? 'active:scale-95 cursor-pointer' : ''} transition-transform w-full min-w-0">
-                                    <i data-lucide="${phone ? 'phone' : 'store'}" class="w-6 h-6 shrink-0"></i> 
+                                <${phone ? `a href="tel:${phone}"` : `div`} class="flex items-center justify-center gap-2 bg-slate-800 text-white text-xl font-bold px-4 py-3 rounded-xl ${phone ? 'hover:bg-slate-700 active:scale-95 cursor-pointer' : ''} transition-all w-full min-w-0">
+                                    <i data-lucide="${phone ? 'phone' : 'store'}" class="w-7 h-7 shrink-0"></i> 
                                     <span class="truncate">${phoneBtnText}</span>
-                                </${phone ? 'a' : 'div'}>` : '<span class="text-base text-slate-400 pl-1">無店家或電話資料</span>'}
+                                </${phone ? 'a' : 'div'}>` : '<span class="text-lg text-slate-400 pl-1">無店家或電話資料</span>'}
                         </div>
                         
                         <div class="space-y-4 mb-5">`;
@@ -989,11 +998,11 @@
                         contentHtml += `
                             <div class="flex justify-between items-start border-b border-slate-50 pb-3">
                                 <div class="pr-3 flex-1 min-w-0">
-                                    <p class="font-bold text-slate-700 text-lg leading-snug break-words">${itemName}</p>
+                                    <p class="font-bold text-slate-700 text-xl leading-snug break-words">${itemName}</p>
                                 </div>
                                 <div class="text-right shrink-0 ml-2">
-                                    <p class="font-black theme-text text-xl">共 ${item.count} 份</p>
-                                    <p class="text-base text-slate-400 font-bold">$${item.subtotal}</p>
+                                    <p class="font-black theme-text text-2xl">共 ${item.count} 份</p>
+                                    <p class="text-lg text-slate-400 font-bold">$${item.subtotal}</p>
                                 </div>
                             </div>`;
                     }
@@ -1001,8 +1010,8 @@
                     contentHtml += `
                         </div>
                         <div class="bg-slate-50 rounded-2xl p-5 flex justify-between items-center">
-                            <span class="text-lg font-bold text-slate-500">此店家訂購總額</span>
-                            <span class="text-3xl font-black theme-text">$${shopData.totalAmount}</span>
+                            <span class="text-xl font-bold text-slate-500">此店家訂購總額</span>
+                            <span class="text-[32px] font-black theme-text">$${shopData.totalAmount}</span>
                         </div>
                     </div>`;
                 });
@@ -1011,8 +1020,8 @@
             container.innerHTML = `
             <div class="p-4 pb-safe bg-slate-50 min-h-full">
                 <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">實戰訂購清單</h2>
+                    <button onclick="switchTab('profile')" class="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-90 transition-all"><i data-lucide="arrow-left" class="w-8 h-8"></i></button>
+                    <h2 class="text-3xl font-black text-slate-800">實戰訂購清單</h2>
                 </div>
                 ${contentHtml}
             </div>`;
@@ -1023,7 +1032,7 @@
             let contentHtml = `
             <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
                 <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增店家 (從 Excel 貼上)</h3>
-                <div class="space-y-4">
+                <div class="space-y-5">
                     <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     
                     <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-lg focus:ring-2 focus:ring-[#006241] outline-none font-mono whitespace-pre text-slate-600"></textarea>
@@ -1051,7 +1060,7 @@
                 </div>
                 
                 <div class="mb-6">
-                    <label class="block text-xl font-bold text-slate-600 mb-3">今日開放店家 (請打勾)</label>
+                    <label class="block text-xl font-bold text-slate-600 mb-4">今日開放店家 (請打勾)</label>
                     <div class="flex flex-wrap gap-3">
                         ${state.data.allShops.map(shop => `
                             <label class="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -1063,7 +1072,7 @@
                 </div>
 
                 <div class="mb-6">
-                    <label class="block text-xl font-bold text-slate-600 mb-2">點餐截止時間</label>
+                    <label class="block text-xl font-bold text-slate-600 mb-3">點餐截止時間</label>
                     <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-2xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                 </div>
                 <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
@@ -1073,7 +1082,7 @@
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-amber-500 pl-3">人氣排行榜引擎</h3>
                 <p class="text-lg text-slate-500 mb-5 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
-                <button onclick="adminUpdatePopularity()" class="w-full bg-amber-50 text-amber-600 border-2 border-amber-200 text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2">
+                <button onclick="adminUpdatePopularity()" class="w-full bg-amber-50 text-amber-600 border-2 border-amber-200 text-xl font-bold py-4 rounded-xl hover:bg-amber-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
                     <i data-lucide="flame" class="w-7 h-7"></i> 立即匯入歷史人氣數據
                 </button>
             </div>
@@ -1088,11 +1097,11 @@
                     <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
-                    <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg">更新店家資料</button>
+                    <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-2xl font-bold py-4 rounded-xl hover:bg-slate-700 active:scale-95 transition-all shadow-lg">更新店家資料</button>
                 </div>
             </div>
 
-            <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-2xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform mt-8 shadow-sm">
+            <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-2xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-100 active:scale-95 transition-all mt-8 shadow-sm">
                 <i data-lucide="archive" class="w-8 h-8"></i> 執行日落打烊與封存
             </button>`;
 
@@ -1100,8 +1109,8 @@
             container.innerHTML = `
             <div class="p-4 pb-safe bg-slate-50 min-h-full">
                 <div class="flex items-center gap-3 mb-6">
-                    <button onclick="switchTab('profile')" class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 active:scale-90"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 class="text-2xl font-black text-slate-800">基地系統設定</h2>
+                    <button onclick="switchTab('profile')" class="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-90 transition-all"><i data-lucide="arrow-left" class="w-8 h-8"></i></button>
+                    <h2 class="text-3xl font-black text-slate-800">基地系統設定</h2>
                 </div>
                 ${contentHtml}
             </div>`;
@@ -1181,31 +1190,37 @@
             });
         }
 
+        // --- Lightbox 邏輯 (使用原生卷軸及百分比縮放) ---
+        let currentImgWidth = 100;
+        
+        function zoomImg(delta) {
+            currentImgWidth += delta;
+            if (currentImgWidth < 50) currentImgWidth = 50;
+            if (currentImgWidth > 400) currentImgWidth = 400;
+            
+            const img = document.getElementById('lightbox-img');
+            img.style.width = `${currentImgWidth}%`;
+            img.style.minWidth = `${currentImgWidth}%`;
+            document.getElementById('zoom-level').textContent = `${currentImgWidth}%`;
+        }
+
         function openLightbox(url) {
+            // 桌機螢幕大，預設 100% 寬；手機螢幕小，預設放大一點點(120%)方便直接閱讀
+            currentImgWidth = window.innerWidth > 768 ? 100 : 120;
+            
             const lightbox = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
-            const container = document.getElementById('panzoom-container');
             
             img.src = url;
+            img.style.width = `${currentImgWidth}%`;
+            img.style.minWidth = `${currentImgWidth}%`;
+            document.getElementById('zoom-level').textContent = `${currentImgWidth}%`;
+            
             lightbox.classList.remove('hidden');
-
-            setTimeout(() => {
-                if (pzInstance) pzInstance.destroy();
-                pzInstance = Panzoom(img, {
-                    maxScale: 6, minScale: 1, contain: 'outside', step: 0.3
-                });
-                
-                if (pzWheelHandler) container.removeEventListener('wheel', pzWheelHandler);
-                pzWheelHandler = pzInstance.zoomWithWheel;
-                container.addEventListener('wheel', pzWheelHandler);
-            }, 100);
         }
 
         function closeLightbox() {
             document.getElementById('lightbox').classList.add('hidden');
-            if (pzInstance) {
-                pzInstance.reset();
-            }
         }
     </script>
 </body>
