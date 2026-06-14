@@ -198,14 +198,15 @@
     </div>
 
     <script>
+        // *** 替換成您的 Google Apps Script 部署網址 ***
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
         
         const state = {
             user: null, token: null,
             system: { isOpen: false, openedShops: [], deadline: '' },
-            data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, userOrders: [], popularityCache: {} },
+            data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, shopExtraNames: {}, userOrders: [], popularityCache: {} },
             cart: [], currentTab: 'menu', activeShop: '',
-            tempItem: null, adminProxyName: '', sortByPop: false // 排序開關
+            tempItem: null, adminProxyName: '', sortByPop: false
         };
 
         let pzInstance = null; let pzWheelHandler = null;
@@ -408,29 +409,40 @@
 
             const imgUrl = state.data.shopImages[state.activeShop];
             const phone = state.data.shopPhones[state.activeShop];
+            // 讀取店家額外資訊(分店名或備註)
+            const extraName = state.data.shopExtraNames ? state.data.shopExtraNames[state.activeShop] : '';
             
-            if (imgUrl || phone) {
+            // 判斷要顯示在按鈕上的文字：如果有店家又有電話，就合併顯示；不然就單獨顯示
+            let phoneBtnText = '';
+            if (extraName && phone) phoneBtnText = `${extraName} ． ${phone}`;
+            else if (extraName) phoneBtnText = extraName;
+            else if (phone) phoneBtnText = phone;
+
+            if (imgUrl || phoneBtnText) {
                 html += `<div class="flex gap-3">`;
                 if(imgUrl) {
                     html += `
-                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition-transform" onclick="openLightbox('${imgUrl}')">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 theme-light rounded-xl flex items-center justify-center"><i data-lucide="image" class="w-6 h-6 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg">查看完整菜單</span>
+                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer active:scale-95 transition-transform min-w-0" onclick="openLightbox('${imgUrl}')">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-5 h-5 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-base truncate">查看菜單</span>
                         </div>
-                        <i data-lucide="zoom-in" class="w-6 h-6 text-slate-400"></i>
                     </div>`;
                 }
-                if(phone) {
+                if(phoneBtnText) {
+                    const asTag = phone ? `a href="tel:${phone}"` : `div`;
+                    const closeTag = phone ? `a` : `div`;
+                    const icon = phone ? `phone` : `store`;
+                    
                     html += `
-                    <a href="tel:${phone}" class="bg-slate-800 text-white rounded-2xl p-4 shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform px-6">
-                        <i data-lucide="phone" class="w-7 h-7"></i>
-                    </a>`;
+                    <${asTag} class="${phone ? 'cursor-pointer active:scale-95' : ''} bg-slate-800 text-white rounded-2xl p-4 shadow-sm flex items-center justify-center gap-2 transition-transform px-4 flex-1 min-w-0">
+                        <i data-lucide="${icon}" class="w-5 h-5 shrink-0"></i>
+                        <span class="truncate font-bold text-base">${phoneBtnText}</span>
+                    </${closeTag}>`;
                 }
                 html += `</div>`;
             }
 
-            // 新增：排序切換開關
             html += `
             <div class="flex justify-between items-center px-2 mb-2 mt-4 border-t border-slate-200 pt-4">
                 <span class="text-base font-bold text-slate-500">選擇美味</span>
@@ -445,7 +457,6 @@
 
             const menu = state.data.menuData[state.activeShop] || [];
             
-            // 預先處理菜單資料
             let processedItems = [];
             menu.forEach((item, index) => {
                 if (!item['品項']) return;
@@ -476,7 +487,6 @@
             });
 
             if (state.sortByPop) {
-                // 人氣排序模式 (從高到低)
                 processedItems.sort((a, b) => b.pop - a.pop);
                 
                 html += `
@@ -492,7 +502,6 @@
                 });
                 html += `</div></details>`;
             } else {
-                // 預設類別群組模式
                 let groupedMenu = {};
                 processedItems.forEach(pItem => {
                     if (!groupedMenu[pItem.category]) groupedMenu[pItem.category] = [];
@@ -525,7 +534,6 @@
             container.innerHTML = html;
         }
 
-        // 獨立出渲染單一品項的函式
         function renderMenuItemRow(pItem) {
             return `
             <div onclick="openItemModal(${pItem.rawIndex})" class="px-5 py-5 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors gap-3">
@@ -956,15 +964,22 @@
                 shops.forEach(shop => {
                     const shopData = summaryByShop[shop];
                     const phone = state.data.shopPhones[shop] || '';
+                    const extraName = state.data.shopExtraNames ? state.data.shopExtraNames[shop] : '';
+                    
+                    let phoneBtnText = '';
+                    if (extraName && phone) phoneBtnText = `${extraName} ． 撥打: ${phone}`;
+                    else if (extraName) phoneBtnText = extraName;
+                    else if (phone) phoneBtnText = `撥打: ${phone}`;
                     
                     contentHtml += `
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                         <div class="flex flex-col gap-3 mb-5 border-b border-slate-100 pb-4">
                             <h3 class="text-3xl font-black text-slate-800 bg-slate-100 px-4 py-2 rounded-xl inline-block w-max">${shop}</h3>
-                            ${phone ? `
-                                <a href="tel:${phone}" class="flex items-center justify-center gap-2 bg-slate-800 text-white text-lg font-bold px-4 py-3 rounded-xl active:scale-95 transition-transform w-full">
-                                    <i data-lucide="phone" class="w-6 h-6"></i> 點擊撥打: ${phone}
-                                </a>` : '<span class="text-base text-slate-400 pl-1">無電話資料</span>'}
+                            ${phoneBtnText ? `
+                                <${phone ? `a href="tel:${phone}"` : `div`} class="flex items-center justify-center gap-2 bg-slate-800 text-white text-lg font-bold px-4 py-3 rounded-xl ${phone ? 'active:scale-95 cursor-pointer' : ''} transition-transform w-full min-w-0">
+                                    <i data-lucide="${phone ? 'phone' : 'store'}" class="w-6 h-6 shrink-0"></i> 
+                                    <span class="truncate">${phoneBtnText}</span>
+                                </${phone ? 'a' : 'div'}>` : '<span class="text-base text-slate-400 pl-1">無店家或電話資料</span>'}
                         </div>
                         
                         <div class="space-y-4 mb-5">`;
@@ -1016,6 +1031,8 @@
                     <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     
                     <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填，例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    
+                    <input type="text" id="newShopExtra" placeholder="店家分店或備註 (選填，例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     
                     <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
                         <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
@@ -1070,6 +1087,7 @@
                     </select>
                     <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
                     <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg">更新店家資料</button>
                 </div>
             </div>
@@ -1101,6 +1119,7 @@
             const rawData = document.getElementById('newShopMenuData').value.trim();
             const imageUrl = document.getElementById('newShopImg').value.trim();
             const phone = document.getElementById('newShopPhone').value.trim();
+            const shopExtra = document.getElementById('newShopExtra').value.trim();
 
             if (!shop) return showAlert('請輸入新店家的名稱！');
             if (!rawData) return showAlert('請在對應欄位貼上從 Excel 複製的菜單資料！');
@@ -1109,7 +1128,7 @@
             const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
 
             showLoading('皮客覓正在開墾新店家...');
-            const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone });
+            const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone, shopExtra });
             if (res) {
                 showAlert(res);
                 loadInitialData(); 
@@ -1134,9 +1153,11 @@
             const shop = document.getElementById('updateShopName').value;
             const imageUrl = document.getElementById('updateShopImg').value.trim();
             const phone = document.getElementById('updateShopPhone').value.trim();
+            const shopExtra = document.getElementById('updateShopExtra').value.trim();
+            
             if (!shop) return showAlert('請選擇店家');
             showLoading('更新店家資料中...');
-            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone });
+            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
             if (res) { showAlert(res); loadInitialData(); }
         }
 
