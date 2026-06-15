@@ -729,7 +729,8 @@
                                 <span>${key}</span>
                             </h4>
                             <p class="text-base sm:text-lg text-slate-700 leading-relaxed font-medium">${optString}</p>
-                    if (options.length > 0) {
+                        </div>`;
+                    } else if (options.length > 0) {
                         state.tempItem.selectedSpec[key] = '';
                         optionsHtml += `
                         <div class="mb-4 sm:mb-6 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
@@ -742,8 +743,7 @@
                         
                         options.forEach(opt => {
                             let extra = 0; let displayName = opt;
-                            // 這裡換成新的加強版正則表達式，把括號也一起包進去抓取
-                            const priceMatch = opt.match(/\(?\s*\+\s*\$?\s*(\d+)\s*\)?/); 
+                            const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
                             if (priceMatch) {
                                 extra = parseInt(priceMatch[1]);
                                 displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
