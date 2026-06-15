@@ -122,8 +122,9 @@
             <h3 class="text-2xl font-black text-slate-800 mb-2">專屬團購報到條碼</h3>
             <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
             
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 w-full flex justify-center">
-                <img id="qrCodeImg" src="" alt="QR Code" class="w-48 h-48 object-contain">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 w-full flex justify-center min-h-[220px]">
+                <!-- 改用穩定度更高的 Google Chart API 產生 QR Code -->
+                <img id="qrCodeImg" src="" alt="產生中..." class="w-48 h-48 object-contain">
             </div>
             
             <div class="w-full bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200 mb-6">
@@ -285,7 +286,7 @@
 
     <script>
         // *** 替換成您的 Google Apps Script 部署網址 ***
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQ9q6gTf6h0r_D-7-N-b6Z7_0B3m2F7y2M6wZ6_qZ6/exec'; 
         
         const state = {
             user: null, token: null,
@@ -552,13 +553,27 @@
             if (imgUrl || phoneBtnText) {
                 html += `<div class="flex gap-4 mt-2">`;
                 if(imgUrl) {
-                    html += `
-                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0" onclick="openLightbox('${imgUrl}')">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-6 h-6 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-lg truncate">查看菜單</span>
-                        </div>
-                    </div>`;
+                    // 判斷是否為常見圖片格式，決定是開啟 Lightbox 還是另開新分頁
+                    const isImage = /\.(jpeg|jpg|gif|png|webp|svg|bmp)$/i.test(imgUrl) || imgUrl.includes('drive.google.com/uc') || imgUrl.includes('chart.googleapis.com');
+                    
+                    if (isImage) {
+                        html += `
+                        <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0" onclick="openLightbox('${imgUrl}')">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-6 h-6 theme-text"></i></div>
+                                <span class="font-bold text-slate-700 text-lg truncate">查看菜單</span>
+                            </div>
+                        </div>`;
+                    } else {
+                        // 如果不是圖片格式 (如 FB、官網)，則改用 a 標籤另開新分頁
+                        html += `
+                        <a href="${imgUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="external-link" class="w-6 h-6 text-blue-500"></i></div>
+                                <span class="font-bold text-slate-700 text-lg truncate">前往官網</span>
+                            </div>
+                        </a>`;
+                    }
                 }
                 if(phoneBtnText) {
                     const asTag = phone ? `a href="tel:${phone}"` : `div`;
@@ -1337,7 +1352,7 @@
 
         function renderAdminSettings() {
             let contentHtml = `
-            <!-- 第一項：營運開關與團購網址產生器 -->
+            <!-- 第一項：營運開關與團購網址產生器 (預設不使用摺疊，因為最常用) -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
                 <div class="flex justify-between items-center mb-5 border-l-4 border-[#006241] pl-3">
                     <h3 class="text-2xl font-black text-slate-800">營運開關</h3>
@@ -1373,57 +1388,72 @@
                 <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
             </div>
 
-            <!-- 第二項：更新現有店家資訊 (含直接覆寫 Excel 菜單) -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
-                <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-blue-600 pl-3">覆寫更新現有店家</h3>
-                <div class="space-y-4">
-                    <select id="updateShopName" onchange="loadShopDataForUpdate(this.value)" class="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 text-xl font-bold text-blue-900 focus:ring-2 focus:ring-blue-600 outline-none cursor-pointer">
-                        <option value="">-- 先選擇要更新的店家 --</option>
-                        ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
-                    </select>
-                    
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                        <label class="block text-base font-bold text-slate-600 mb-2">更新店家圖片與電話</label>
-                        <input type="text" id="updateShopImg" placeholder="線上圖片網址 (https://...)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                        <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                        <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                        <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-3 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">儲存圖片與電話資訊</button>
-                    </div>
+            <!-- 第二項：更新現有店家資訊 (使用摺疊收納) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
+                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
+                    <span class="border-l-4 border-blue-600 pl-3">覆寫更新現有店家</span>
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div class="p-6 pt-0 border-t border-slate-100">
+                    <div class="space-y-4 mt-4">
+                        <select id="updateShopName" onchange="loadShopDataForUpdate(this.value)" class="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 text-xl font-bold text-blue-900 focus:ring-2 focus:ring-blue-600 outline-none cursor-pointer">
+                            <option value="">-- 先選擇要更新的店家 --</option>
+                            ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
+                        </select>
+                        
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <label class="block text-base font-bold text-slate-600 mb-2">更新店家圖片與電話</label>
+                            <input type="text" id="updateShopImg" placeholder="線上圖片網址 或 官網連結 (https://...)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
+                            <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
+                            <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
+                            <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-3 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">儲存圖片與電話資訊</button>
+                        </div>
 
-                    <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 mt-4">
-                        <label class="block text-base font-bold text-amber-800 mb-2 flex items-center gap-2"><i data-lucide="table" class="w-5 h-5"></i> 覆寫整份菜單資料 (可批次調價)</label>
-                        <p class="text-sm text-amber-700 mb-3">將 Excel 範圍圈選複製貼上於此，這會清空舊菜單並重新寫入！請確保第一行包含「品項」標題。</p>
-                        <textarea id="updateShopMenuData" placeholder="請在此貼上 Excel 的菜單資料..." rows="5" class="w-full bg-white border border-amber-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none font-mono whitespace-pre text-slate-600 mb-3"></textarea>
-                        <button onclick="overwriteShopMenu()" class="w-full bg-amber-500 text-white text-lg font-bold py-3 rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-md">覆寫上傳最新菜單</button>
+                        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 mt-4">
+                            <label class="block text-base font-bold text-amber-800 mb-2 flex items-center gap-2"><i data-lucide="table" class="w-5 h-5"></i> 覆寫整份菜單資料 (可批次調價)</label>
+                            <p class="text-sm text-amber-700 mb-3">將 Excel 範圍圈選複製貼上於此，這會清空舊菜單並重新寫入！請確保第一行包含「品項」標題。</p>
+                            <textarea id="updateShopMenuData" placeholder="請在此貼上 Excel 的菜單資料..." rows="5" class="w-full bg-white border border-amber-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none font-mono whitespace-pre text-slate-600 mb-3"></textarea>
+                            <button onclick="overwriteShopMenu()" class="w-full bg-amber-500 text-white text-lg font-bold py-3 rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-md">覆寫上傳最新菜單</button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </details>
 
-            <!-- 第三項：新增全新店家 -->
-            <div class="bg-white rounded-3xl shadow-sm border border-emerald-200 p-6 mb-6">
-                <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-emerald-500 pl-3">新增全新店家 (從 Excel 貼上)</h3>
-                <div class="space-y-4">
-                    <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                    <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-emerald-500 outline-none font-mono whitespace-pre text-slate-600"></textarea>
-                    <input type="text" id="newShopImg" placeholder="線上圖片網址 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                    <div class="flex gap-3">
-                        <input type="text" id="newShopPhone" placeholder="聯絡電話" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                        <input type="text" id="newShopExtra" placeholder="分店備註" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+            <!-- 第三項：新增全新店家 (使用摺疊收納) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
+                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
+                    <span class="border-l-4 border-emerald-500 pl-3">新增全新店家 (從 Excel 貼上)</span>
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div class="p-6 pt-0 border-t border-slate-100">
+                    <div class="space-y-4 mt-4">
+                        <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+                        <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-emerald-500 outline-none font-mono whitespace-pre text-slate-600"></textarea>
+                        <input type="text" id="newShopImg" placeholder="線上圖片網址 或 官網連結 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+                        <div class="flex gap-3">
+                            <input type="text" id="newShopPhone" placeholder="聯絡電話" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+                            <input type="text" id="newShopExtra" placeholder="分店備註" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+                        </div>
+                        <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 mt-2">
+                            <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
+                        </button>
                     </div>
-                    <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 mt-2">
-                        <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
+                </div>
+            </details>
+
+            <!-- 第四項：人氣排行榜引擎 (使用摺疊收納) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
+                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
+                    <span class="border-l-4 border-orange-400 pl-3">人氣排行榜引擎</span>
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div class="p-6 pt-0 border-t border-slate-100">
+                    <p class="text-lg text-slate-500 mb-5 mt-4 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
+                    <button onclick="adminUpdatePopularity()" class="w-full bg-orange-50 text-orange-600 border-2 border-orange-200 text-xl font-bold py-4 rounded-xl hover:bg-orange-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
+                        <i data-lucide="flame" class="w-7 h-7"></i> 立即匯入歷史人氣數據
                     </button>
                 </div>
-            </div>
-
-            <!-- 第四項：人氣排行榜引擎 -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
-                <h3 class="text-2xl font-black text-slate-800 mb-5 border-l-4 border-orange-400 pl-3">人氣排行榜引擎</h3>
-                <p class="text-lg text-slate-500 mb-5 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
-                <button onclick="adminUpdatePopularity()" class="w-full bg-orange-50 text-orange-600 border-2 border-orange-200 text-xl font-bold py-4 rounded-xl hover:bg-orange-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="flame" class="w-7 h-7"></i> 立即匯入歷史人氣數據
-                </button>
-            </div>
+            </details>
 
             <!-- 最後一項：日落打烊 -->
             <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-2xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-100 active:scale-95 transition-all mt-8 shadow-sm">
@@ -1449,8 +1479,9 @@
             const shareUrl = baseUrl + '?guest=1';
             
             document.getElementById('shareLinkInput').value = shareUrl;
-            // 使用穩定的 QR Code 產生器 API (Google Charts API 依然非常穩定快速)
-            document.getElementById('qrCodeImg').src = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(shareUrl)}`;
+            
+            // 使用穩定度高的 Google Chart API (尺寸設為 300x300 確保清晰)
+            document.getElementById('qrCodeImg').src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(shareUrl)}&choe=UTF-8`;
             
             const modal = document.getElementById('qrModal');
             modal.classList.remove('hidden');
