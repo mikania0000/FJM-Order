@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>皮客覓 PickMeal</title>
+    <title>皮客覓 PickMeal v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 本地端 QR Code 產生庫，解決破圖問題 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
@@ -18,6 +19,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* 自訂Lightbox捲軸樣式 */
         .custom-scrollbar::-webkit-scrollbar { width: 14px; height: 14px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 8px; border: 3px solid rgba(0,0,0,0.8); }
@@ -36,27 +38,27 @@
         .theme-text { color: #006241; }
         .theme-light { background-color: #e8f3ee; }
         
+        /* 隱藏 details 預設箭頭 */
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
 
-        /* 專為匯出 PDF/列印 設計的隱藏樣式 */
+        /* 列印用隱藏樣式 (隱藏畫面上所有非表格元素) */
         @media print {
-            body > *:not(#printArea) { display: none !important; }
-            #printArea { display: block !important; position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
-            .print-page-break { page-break-after: always; }
-            @page { margin: 1cm; size: A4 portrait; }
-            /* 強制列印表格邊線與背景顏色 */
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #000 !important; padding: 12px 8px; text-align: left; }
-            th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .print-checkbox { width: 20px; height: 20px; border: 2px solid #000; display: inline-block; vertical-align: middle; }
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+            /* 隱藏原本會干擾的按鈕和邊界 */
+            #mainApp, #lightbox, #alertBox, #confirmBox, #itemModal, nav, header { display: none !important; }
         }
     </style>
 </head>
 <body class="text-slate-800 antialiased overflow-hidden flex flex-col h-screen">
 
+    <!-- 用來存放 PDF 列印內容的隱藏容器 -->
+    <div id="printArea" class="hidden absolute top-0 left-0 w-full h-auto bg-white p-8"></div>
+
     <!-- 提示框 -->
-    <div id="alertBox" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300 print:hidden">
+    <div id="alertBox" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-12 h-12 rounded-full theme-light theme-text flex items-center justify-center shrink-0">
@@ -72,7 +74,7 @@
     </div>
 
     <!-- 確認框 -->
-    <div id="confirmBox" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300 print:hidden">
+    <div id="confirmBox" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
@@ -88,7 +90,32 @@
         </div>
     </div>
 
-    <div id="loading" class="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-white/90 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 print:hidden">
+    <!-- 專屬連結 QR Code 彈窗 -->
+    <div id="qrModal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform scale-95 transition-transform duration-300 text-center flex flex-col items-center">
+            <div class="w-16 h-16 rounded-full theme-light theme-text flex items-center justify-center mb-4">
+                <i data-lucide="qr-code" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-2">專屬團購報到條碼</h3>
+            <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
+            
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 w-full flex justify-center">
+                <!-- 換成 canvas 讓 QRious 繪製 -->
+                <canvas id="qrCodeCanvas"></canvas>
+            </div>
+            
+            <div class="w-full flex items-center bg-slate-50 border border-slate-200 rounded-xl p-2 mb-6">
+                <input type="text" id="shareUrlInput" readonly class="bg-transparent w-full px-2 text-sm text-slate-600 outline-none font-mono">
+                <button onclick="copyShareUrl()" class="p-2 bg-white rounded-lg border border-slate-200 hover:bg-slate-100 active:scale-95 transition-transform text-slate-600 shadow-sm shrink-0">
+                    <i data-lucide="copy" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <button onclick="closeQrModal()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-700 active:scale-95 transition-all text-xl">關閉</button>
+        </div>
+    </div>
+
+    <div id="loading" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-md hidden opacity-0 transition-opacity duration-300">
         <div class="relative w-24 h-24 mb-4">
             <div class="absolute bottom-0 w-full h-1/2 bg-[#006241] rounded-b-xl opacity-20"></div>
             <i data-lucide="sprout" class="w-16 h-16 theme-text absolute bottom-4 left-4 animate-bounce-slow"></i>
@@ -97,7 +124,7 @@
     </div>
 
     <!-- 菜單預覽 Lightbox -->
-    <div id="lightbox" class="fixed inset-0 z-[60] bg-slate-900 hidden flex flex-col print:hidden">
+    <div id="lightbox" class="fixed inset-0 z-[60] bg-slate-900 hidden flex flex-col">
         <div class="flex justify-between items-center p-4 text-white absolute top-0 w-full z-10 bg-gradient-to-b from-slate-900/90 to-transparent">
             <span class="text-lg font-bold opacity-90 drop-shadow-md flex items-center gap-2"><i data-lucide="mouse-pointer-2" class="w-6 h-6"></i>滑動捲軸查看菜單</span>
             <button onclick="closeLightbox()" class="p-3 bg-white/20 hover:bg-white/40 rounded-full backdrop-blur transition-colors"><i data-lucide="x" class="w-8 h-8"></i></button>
@@ -114,37 +141,10 @@
         </div>
     </div>
 
-    <!-- QR Code 分享彈窗 -->
-    <div id="qrModal" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden opacity-0 transition-opacity duration-300 print:hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300 flex flex-col items-center text-center">
-            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                <i data-lucide="qr-code" class="w-8 h-8 text-emerald-600"></i>
-            </div>
-            <h3 class="text-2xl font-black text-slate-800 mb-2">專屬團購報到條碼</h3>
-        <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
-        
-        <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 w-full flex justify-center items-center min-h-[220px]">
-            <!-- 改用 Canvas 元素讓 JS 直接在本地端畫出 QR Code -->
-            <canvas id="qrCodeCanvas" class="w-48 h-48"></canvas>
-        </div>
-        
-        <div class="w-full bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200 mb-6">
-                <input type="text" id="shareLinkInput" readonly class="flex-1 bg-transparent border-none focus:ring-0 text-slate-600 font-mono text-sm truncate" value="">
-                <button onclick="copyShareLink()" class="p-2 bg-white rounded-lg shadow-sm border border-slate-200 hover:bg-slate-100 active:scale-95 transition-all text-slate-600">
-                    <i data-lucide="copy" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <button onclick="closeQrModal()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-700 active:scale-95 transition-all text-xl">
-                關閉
-            </button>
-        </div>
-    </div>
-
-    <!-- 登入頁面 (含免登入訪客模式切換) -->
-    <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto transition-transform duration-500 print:hidden">
+    <!-- 登入頁面 -->
+    <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto transition-transform duration-500">
         <div class="w-full max-w-md my-auto py-2">
-            <div class="flex flex-col items-center mb-6">
+            <div class="flex flex-col items-center mb-4">
                 <div class="w-20 h-20 theme-green rounded-[1.5rem] shadow-xl flex flex-col items-center justify-center relative mb-3">
                     <svg class="absolute top-2 right-2 w-6 h-6 text-white sparkle-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                     <svg class="absolute top-1.5 left-3 w-4 h-4 text-white sparkle-2" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 4.5 4.5 1.5-4.5 1.5L12 14l-1.5-4.5-4.5-1.5 4.5-1.5z"/></svg>
@@ -155,61 +155,43 @@
                     </div>
                 </div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-wider">皮客覓</h1>
-                <p class="text-sm font-bold theme-text tracking-[0.3em] mt-0.5 uppercase">PickMeal</p>
+                <p class="text-sm font-bold theme-text tracking-[0.3em] mt-0.5 uppercase">PickMeal <span class="text-slate-400 font-normal ml-1">v2.0</span></p>
                 <p id="loginSubtitle" class="text-base text-slate-500 mt-2 font-medium">探險家，準備好出發採集物資了嗎？</p>
             </div>
 
-            <!-- 常規登入區塊 -->
-            <div id="normalLoginBlock" class="bg-white rounded-3xl shadow-sm p-6 border border-slate-100 transition-all">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-500 mb-1.5 ml-1">探險家帳號</label>
-                        <input type="text" id="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="請輸入帳號">
+            <div class="bg-white rounded-2xl shadow-sm p-4 border border-slate-100 relative overflow-hidden">
+                <!-- 免登入模式標籤 (預設隱藏) -->
+                <div id="guestModeBadge" class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl hidden shadow-sm">團購快速報到</div>
+                
+                <div class="space-y-3">
+                    <div id="usernameGroup">
+                        <label class="block text-sm font-bold text-slate-500 mb-1 ml-1">探險家帳號</label>
+                        <input type="text" id="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="請輸入帳號">
+                    </div>
+                    <div id="passwordGroup">
+                        <label class="block text-sm font-bold text-slate-500 mb-1 ml-1">通關密碼</label>
+                        <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="請輸入密碼">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-slate-500 mb-1.5 ml-1">通關密碼</label>
-                        <input type="password" id="password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="請輸入密碼">
+                        <label id="nameLabel" class="block text-sm font-bold text-slate-500 mb-1 ml-1">稱呼 <span class="text-slate-400 font-normal" id="nameOptionalText">(選填)</span></label>
+                        <input type="text" id="displayName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-base" placeholder="您希望皮客覓怎麼稱呼您？">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-500 mb-1.5 ml-1">稱呼 <span class="text-slate-400 font-normal">(選填)</span></label>
-                        <input type="text" id="displayName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-lg" placeholder="希望皮客覓怎麼稱呼您？">
-                    </div>
-                    <button onclick="login()" class="w-full theme-green text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/20 mt-4 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all text-xl">
-                        <i data-lucide="log-in" class="w-6 h-6"></i> 登入基地
+                    <button onclick="login()" id="loginBtn" class="w-full theme-green text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 mt-2 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all text-lg">
+                        <i data-lucide="log-in" class="w-5 h-5"></i> <span id="loginBtnText">登入基地</span>
                     </button>
                 </div>
             </div>
-
-            <!-- 訪客報到區塊 (透過網址參數自動顯示) -->
-            <div id="guestLoginBlock" class="bg-white rounded-3xl shadow-lg p-6 border-2 border-[#006241] transition-all hidden relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-bl-full -z-10"></div>
-                <h3 class="text-2xl font-black text-slate-800 mb-2">👋 團購快速報到</h3>
-                <p class="text-slate-500 mb-6 font-medium">免輸入密碼！請直接留下您的姓名或暱稱即可開始點餐。</p>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-500 mb-1.5 ml-1 text-emerald-700">您的暱稱 / 姓名 (必填)</label>
-                        <input type="text" id="guestName" class="w-full bg-emerald-50 border-2 border-emerald-200 rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-[#006241] focus:bg-white transition-all text-xl font-bold text-slate-800" placeholder="例如：總務處王大明">
-                    </div>
-                    <button onclick="guestLogin()" class="w-full theme-green text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/30 mt-2 flex justify-center items-center gap-2 hover:bg-emerald-800 active:scale-95 transition-all text-xl">
-                        <i data-lucide="rocket" class="w-6 h-6"></i> 立即進入點餐
-                    </button>
-                </div>
-            </div>
-
         </div>
     </div>
 
-    <!-- 專為列印設計的隱藏容器 -->
-    <div id="printArea" class="hidden text-black bg-white z-[100] absolute inset-0 min-h-screen"></div>
-
     <!-- 主應用程式 -->
-    <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative print:hidden">
+    <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
                 <i data-lucide="sprout" class="w-9 h-9 theme-text"></i>
                 <div>
                     <h1 class="text-3xl font-black text-slate-800 leading-tight">皮客覓</h1>
-                    <p class="text-[12px] theme-text font-bold tracking-widest leading-none mt-1">PICKMEAL</p>
+                    <p class="text-[12px] theme-text font-bold tracking-widest leading-none mt-1">PICKMEAL <span class="text-slate-400 font-normal ml-1">v2.0</span></p>
                 </div>
             </div>
             <div class="text-right">
@@ -218,26 +200,32 @@
             </div>
         </header>
         
+        <!-- 打氣問候語區塊 -->
         <div class="bg-white px-5 py-3 border-b border-slate-100 flex items-center gap-2 z-10 shadow-sm">
             <i data-lucide="sun" class="w-7 h-7 text-amber-500"></i>
             <p class="text-lg font-bold text-slate-600">探險家，今天想尋覓什麼美味呢？</p>
         </div>
 
-        <main id="mainContent" class="flex-1 overflow-y-auto no-scrollbar pb-safe w-full max-w-3xl mx-auto relative"></main>
+        <main id="mainContent" class="flex-1 overflow-y-auto no-scrollbar pb-safe w-full max-w-3xl mx-auto"></main>
 
         <!-- 批次儲存專用浮動按鈕 (預設隱藏) -->
         <div id="batchSaveBar" class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-full max-w-3xl left-1/2 -translate-x-1/2 p-4 z-40 hidden transition-all transform translate-y-full opacity-0">
-            <div class="bg-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-2xl border-t border-slate-700">
+            <div class="bg-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-2xl border-t border-slate-700 gap-2">
                 <div class="text-white flex items-center gap-3">
-                    <i data-lucide="save" class="w-6 h-6 text-emerald-400"></i>
+                    <i data-lucide="save" class="w-6 h-6 text-emerald-400 shrink-0"></i>
                     <div>
                         <p class="text-sm text-slate-400 font-bold leading-none mb-1">有變更尚未儲存</p>
-                        <p id="batchSaveCountText" class="text-lg font-black leading-none">待更新 X 筆資料</p>
+                        <p id="batchSaveCountText" class="text-lg font-black leading-none truncate">待更新 X 筆資料</p>
                     </div>
                 </div>
-                <button onclick="commitBatchUpdates()" class="bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-emerald-600 active:scale-95 transition-transform shadow-lg text-lg">
-                    <i data-lucide="cloud-upload" class="w-5 h-5"></i> 一鍵上傳
-                </button>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="cancelBatchUpdates()" class="bg-slate-600 text-white font-bold px-4 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-500 active:scale-95 transition-transform shadow-lg text-sm sm:text-base">
+                        <i data-lucide="x" class="w-5 h-5 hidden sm:block"></i> 取消
+                    </button>
+                    <button onclick="commitBatchUpdates()" class="bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl flex items-center gap-1 sm:gap-2 hover:bg-emerald-600 active:scale-95 transition-transform shadow-lg text-sm sm:text-base">
+                        <i data-lucide="cloud-upload" class="w-5 h-5 hidden sm:block"></i> 一鍵上傳
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -258,51 +246,86 @@
         </nav>
     </div>
 
-    <!-- 點餐彈窗 -->
-    <div id="itemModal" class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end print:hidden">
-        <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
-            <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-5 shrink-0"></div>
-            <div class="flex justify-between items-start mb-5 shrink-0">
+    <!-- 點餐彈窗 (加入手機版縮放與樣式優化) -->
+    <div id="itemModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
+        <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-4 sm:p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
+            <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:mb-5 shrink-0"></div>
+            <div class="flex justify-between items-start mb-4 sm:mb-5 shrink-0">
                 <div class="flex-1 pr-4">
-                    <h2 id="modalItemName" class="text-3xl font-black text-slate-800 leading-snug break-words"></h2>
-                    <p id="modalItemPrice" class="theme-text font-black text-3xl mt-2"></p>
+                    <h2 id="modalItemName" class="text-2xl sm:text-3xl font-black text-slate-800 leading-snug break-words"></h2>
+                    <p id="modalItemPrice" class="theme-text font-black text-2xl sm:text-3xl mt-1 sm:mt-2"></p>
                 </div>
-                <button onclick="closeItemModal()" class="p-3 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 shrink-0 transition-colors"><i data-lucide="x" class="w-8 h-8"></i></button>
+                <button onclick="closeItemModal()" class="p-2 sm:p-3 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 shrink-0 transition-colors"><i data-lucide="x" class="w-6 h-6 sm:w-8 sm:h-8"></i></button>
             </div>
             
             <div class="flex-1 overflow-y-auto no-scrollbar -mx-2 px-2" id="modalOptionsArea"></div>
 
-            <div class="mt-6 pt-5 border-t border-slate-100 shrink-0 flex gap-4 items-center">
-                <div class="flex items-center bg-slate-100 rounded-xl p-1.5">
-                    <button onclick="adjustQty(-1)" class="w-14 h-14 flex items-center justify-center text-slate-600 font-bold text-4xl active:bg-slate-200 rounded-lg pb-1">-</button>
-                    <span id="modalQty" class="w-12 text-center font-bold text-2xl text-slate-800">1</span>
-                    <button onclick="adjustQty(1)" class="w-14 h-14 flex items-center justify-center text-slate-600 font-bold text-4xl active:bg-slate-200 rounded-lg pb-1">+</button>
+            <div class="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-100 shrink-0 flex gap-3 sm:gap-4 items-center">
+                <div class="flex items-center bg-slate-100 rounded-xl p-1 sm:p-1.5">
+                    <button onclick="adjustQty(-1)" class="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center text-slate-600 font-bold text-3xl sm:text-4xl active:bg-slate-200 rounded-lg pb-1">-</button>
+                    <span id="modalQty" class="w-10 sm:w-12 text-center font-bold text-xl sm:text-2xl text-slate-800">1</span>
+                    <button onclick="adjustQty(1)" class="w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center text-slate-600 font-bold text-3xl sm:text-4xl active:bg-slate-200 rounded-lg pb-1">+</button>
                 </div>
-                <button onclick="addToCart()" class="flex-1 theme-green text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 active:scale-95 transition-transform text-2xl">
-                    <i data-lucide="plus" class="w-7 h-7"></i> 放入背包 <span id="modalBtnPrice" class="ml-2 bg-white/20 px-3 py-1 rounded text-xl"></span>
+                <button onclick="addToCart()" class="flex-1 theme-green text-white font-bold py-3 sm:py-4 rounded-xl flex justify-center items-center gap-2 active:scale-95 transition-transform text-xl sm:text-2xl">
+                    <i data-lucide="plus" class="w-5 h-5 sm:w-7 sm:h-7"></i> 放入背包 <span id="modalBtnPrice" class="ml-1 sm:ml-2 bg-white/20 px-2 py-0.5 sm:px-3 sm:py-1 rounded text-lg sm:text-xl"></span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // *** 替換成您的 Google Apps Script 部署網址 ***
+        // *** 替換成您的最新 Google Apps Script 部署網址 ***
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
         
         const state = {
-            user: null, token: null,
+            user: null, token: null, isGuestMode: false,
             system: { isOpen: false, openedShops: [], deadline: '' },
             data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, shopExtraNames: {}, userOrders: [], popularityCache: {} },
             cart: [], currentTab: 'menu', activeShop: '',
             tempItem: null, adminProxyName: '', sortByPop: false,
-            adminDataCache: null, // 快取管理員資料以供列印使用
-            pendingUpdates: {} // 批次儲存佇列: { orderId: { pay: '已繳費', take: '已取餐' } }
+            // 批次儲存專用暫存區塊
+            pendingUpdates: {},
+            adminDataCache: null // 暫存目前的發餐資料以供操作
         };
 
         lucide.createIcons();
 
-        // 偵測網址是否包含 guest=1
-        const isGuestModeURL = new URLSearchParams(window.location.search).get('guest') === '1';
+        // 偵測網址參數，看是否為分享的團購連結 (?guest=1)
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isGuestLogin = urlParams.get('guest') === '1';
+
+            if (isGuestLogin) {
+                // 啟動免登入介面
+                state.isGuestMode = true;
+                document.getElementById('usernameGroup').classList.add('hidden');
+                document.getElementById('passwordGroup').classList.add('hidden');
+                document.getElementById('guestModeBadge').classList.remove('hidden');
+                document.getElementById('nameLabel').innerHTML = '請輸入您的暱稱 (必填) <span class="text-red-500">*</span>';
+                document.getElementById('nameOptionalText')?.remove();
+                document.getElementById('loginBtnText').textContent = '開始點餐';
+                document.getElementById('loginSubtitle').textContent = '團長已經開好表單，填寫暱稱即可加入！';
+                
+                document.getElementById('loginPage').classList.remove('-translate-y-full');
+            } else {
+                // 正常登入邏輯
+                const savedToken = localStorage.getItem('pickmeal_token');
+                const savedUser = localStorage.getItem('pickmeal_user');
+                if (savedToken && savedUser) {
+                    state.token = savedToken;
+                    state.user = JSON.parse(savedUser);
+                    
+                    // 設定下方導航列文字
+                    const isGuestUser = state.user.isGuest || state.user.role !== '管理';
+                    document.getElementById('profileTabText').textContent = isGuestUser ? '我的紀錄' : '指揮所';
+                    document.getElementById('profileIcon').setAttribute('data-lucide', isGuestUser ? 'file-text' : 'user');
+                    
+                    loadInitialData();
+                } else {
+                    document.getElementById('loginPage').classList.remove('-translate-y-full');
+                }
+            }
+        };
 
         function showLoading(text = '皮客覓準備中...') {
             document.getElementById('loadingText').textContent = text;
@@ -355,8 +378,8 @@
         }
 
         async function apiCall(action, data = {}) {
-            if(!SCRIPT_URL || SCRIPT_URL.includes('AKfycbzQ9q6gTf6h0r')) {
-                showAlert('請先在 HTML 原始碼中設定您自己的 SCRIPT_URL 網址！', '系統設定錯誤');
+            if(!SCRIPT_URL) {
+                showAlert('請先在 HTML 中設定 SCRIPT_URL 網址！', '系統設定錯誤');
                 hideLoading(); return null;
             }
             try {
@@ -378,45 +401,23 @@
             }
         }
 
-        window.onload = () => {
-            const savedToken = localStorage.getItem('pickmeal_token');
-            const savedUser = localStorage.getItem('pickmeal_user');
-            
-            if (isGuestModeURL && !savedToken) {
-                // 如果是訪客網址且尚未登入，顯示專屬訪客登入介面
-                document.getElementById('loginSubtitle').textContent = '歡迎使用團購免登入專屬通道';
-                document.getElementById('normalLoginBlock').classList.add('hidden');
-                document.getElementById('guestLoginBlock').classList.remove('hidden');
-                document.getElementById('loginPage').classList.remove('-translate-y-full');
-            } else if (savedToken && savedUser) {
-                // 已有紀錄，自動登入
-                state.token = savedToken;
-                state.user = JSON.parse(savedUser);
-                loadInitialData();
-            } else {
-                // 正常顯示管理員/一般使用者登入畫面
-                document.getElementById('loginPage').classList.remove('-translate-y-full');
-            }
-        };
-
         async function login() {
-            const u = document.getElementById('username').value.trim();
-            const p = document.getElementById('password').value.trim();
             const n = document.getElementById('displayName').value.trim();
-            if (!u || !p) return showAlert('請輸入完整的探險家帳號與密碼！');
 
-            showLoading('正在驗證探險家身分...');
-            const res = await apiCall('login', { username: u, password: p, name: n });
-            handleLoginSuccess(res);
-        }
+            if (state.isGuestMode) {
+                if (!n) return showAlert('必須輸入您的稱呼，才能幫您標記物資喔！');
+                showLoading('正在為您建立臨時通行證...');
+                const res = await apiCall('guestLogin', { name: n });
+                handleLoginSuccess(res);
+            } else {
+                const u = document.getElementById('username').value.trim();
+                const p = document.getElementById('password').value.trim();
+                if (!u || !p) return showAlert('請輸入完整的探險家帳號與密碼！');
 
-        async function guestLogin() {
-            const n = document.getElementById('guestName').value.trim();
-            if (!n) return showAlert('必須填寫暱稱才能進入點餐喔！');
-
-            showLoading('正在建立專屬點餐通道...');
-            const res = await apiCall('guestLogin', { name: n });
-            handleLoginSuccess(res);
+                showLoading('正在驗證探險家身分...');
+                const res = await apiCall('login', { username: u, password: p, name: n });
+                handleLoginSuccess(res);
+            }
         }
 
         function handleLoginSuccess(res) {
@@ -439,29 +440,25 @@
         function logout() {
             localStorage.removeItem('pickmeal_token');
             localStorage.removeItem('pickmeal_user');
-            // 如果是帶有參數的訪客網址，登出後清除參數重置為乾淨網址
-            window.location.href = window.location.href.split('?')[0];
+            // 移除網址參數並重新整理，恢復成正常的登入畫面
+            window.location.href = window.location.pathname;
         }
 
         async function loadInitialData() {
             showLoading('正在與基地同步資料...');
             const res = await apiCall('getInitialData');
             if (res) {
-                const isGuest = state.user.isGuest || state.user.role !== '管理';
-                document.getElementById('profileTabText').textContent = isGuest ? '我的紀錄' : '指揮所';
-                document.getElementById('profileIcon').setAttribute('data-lucide', isGuest ? 'file-text' : 'user');
-                
                 processInitialData(res);
                 enterApp();
             }
         }
 
-        // 專為管理員設計的背景更新，不跳轉畫面
         async function silentReload() {
+            showLoading('更新設定中...');
             const res = await apiCall('getInitialData');
-            if (res) {
-                state.system = res.systemStatus;
-                state.data = res;
+            if(res) {
+                processInitialData(res);
+                hideLoading();
             }
         }
 
@@ -469,14 +466,12 @@
             state.system = data.systemStatus;
             state.data = data;
             
-            let roleTitle = '探險家';
-            if (state.user.role === '管理') roleTitle = '指揮官';
-            if (state.user.isGuest) roleTitle = '團購夥伴';
-            
-            document.getElementById('userGreeting').textContent = `${roleTitle} ${state.user.name}`;
+            // 訪客稱呼
+            const roleName = state.user.isGuest ? '探險家(免登)' : (state.user.role === '管理' ? '指揮官' : '探險家');
+            document.getElementById('userGreeting').textContent = `${roleName} ${state.user.name}`;
             document.getElementById('appDeadline').textContent = state.system.deadline ? `打烊時間: ${state.system.deadline}` : '隨時可發射洋蔥號';
             
-            if (state.system.openedShops.length > 0 && !state.activeShop) {
+            if (state.system.openedShops.length > 0 && (!state.activeShop || !state.system.openedShops.includes(state.activeShop))) {
                 state.activeShop = state.system.openedShops[0];
             }
         }
@@ -502,12 +497,6 @@
                 }
             });
             const content = document.getElementById('mainContent');
-            
-            // 切換分頁時，隱藏尚未儲存的提示浮動條
-            if (tabId !== 'profile') {
-                hideBatchSaveBar();
-            }
-
             if (tabId === 'menu') renderMenuTab(content);
             if (tabId === 'cart') renderCartTab(content);
             if (tabId === 'profile') renderProfileTab(content);
@@ -524,6 +513,7 @@
                         <h2 class="text-4xl font-bold text-slate-700 mb-4">日落了</h2>
                         <p class="text-2xl leading-relaxed">皮客覓已休息，<br>目前基地不開放物資採集。</p>
                     </div>`;
+                lucide.createIcons();
                 return;
             }
 
@@ -563,27 +553,18 @@
             if (imgUrl || phoneBtnText) {
                 html += `<div class="flex gap-4 mt-2">`;
                 if(imgUrl) {
-                    // 判斷是否為常見圖片格式，決定是開啟 Lightbox 還是另開新分頁
-                    const isImage = /\.(jpeg|jpg|gif|png|webp|svg|bmp)$/i.test(imgUrl) || imgUrl.includes('drive.google.com/uc') || imgUrl.includes('chart.googleapis.com');
+                    // 判斷是圖片還是外部連結
+                    const isImg = imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null || imgUrl.includes('drive.google') || imgUrl.includes('imgur');
+                    const clickAction = isImg ? `openLightbox('${imgUrl}')` : `window.open('${imgUrl}', '_blank')`;
+                    const iconName = isImg ? 'image' : 'external-link';
                     
-                    if (isImage) {
-                        html += `
-                        <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0" onclick="openLightbox('${imgUrl}')">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="image" class="w-6 h-6 theme-text"></i></div>
-                                <span class="font-bold text-slate-700 text-lg truncate">查看菜單</span>
-                            </div>
-                        </div>`;
-                    } else {
-                        // 如果不是圖片格式 (如 FB、官網)，則改用 a 標籤另開新分頁
-                        html += `
-                        <a href="${imgUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><i data-lucide="external-link" class="w-6 h-6 text-blue-500"></i></div>
-                                <span class="font-bold text-slate-700 text-lg truncate">前往官網</span>
-                            </div>
-                        </a>`;
-                    }
+                    html += `
+                    <div class="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-95 transition-all min-w-0" onclick="${clickAction}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-10 h-10 theme-light rounded-xl flex items-center justify-center shrink-0"><i data-lucide="${iconName}" class="w-6 h-6 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-lg truncate">${isImg ? '查看菜單' : '前往官網'}</span>
+                        </div>
+                    </div>`;
                 }
                 if(phoneBtnText) {
                     const asTag = phone ? `a href="tel:${phone}"` : `div`;
@@ -688,9 +669,7 @@
             
             html += `</div>`;
             container.innerHTML = html;
-            
-            // 修正 Bug：切換店家重新渲染後，必須重新呼叫 createIcons 繪製 SVG 圖示
-            lucide.createIcons();
+            lucide.createIcons(); // 確保重繪圖示
         }
 
         function renderMenuItemRow(pItem) {
@@ -739,12 +718,12 @@
                         }
                         
                         optionsHtml += `
-                        <div class="mb-6">
-                            <h4 class="text-lg font-bold text-slate-500 mb-3 border-l-4 border-[#006241] pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
-                            <div class="flex flex-wrap gap-3">
+                        <div class="mb-4 sm:mb-6">
+                            <h4 class="text-base sm:text-lg font-bold text-slate-500 mb-2 sm:mb-3 border-l-4 border-[#006241] pl-2 sm:pl-3">選擇${key.includes('單價') ? '價格' : '規格'}</h4>
+                            <div class="flex flex-wrap gap-2 sm:gap-3">
                                 <label class="relative cursor-pointer">
                                     <input type="radio" name="spec_price" value="${price}" data-label="${key.includes('單價') ? '' : key}" class="peer sr-only" ${isFirstPriceSet && state.tempItem.basePrice === price ? 'checked' : ''} onchange="updateTempItemSpec('規格', this.dataset.label, ${price})">
-                                    <div class="px-6 py-4 rounded-xl border-2 border-slate-200 text-xl font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
+                                    <div class="px-4 py-2 sm:px-6 sm:py-4 rounded-xl border-2 border-slate-200 text-lg sm:text-xl font-bold text-slate-600 peer-checked:bg-[#006241] peer-checked:text-white peer-checked:border-[#006241] transition-all">
                                         ${key.includes('單價') ? `單價 (+$${price})` : `${key} (+$${price})`}
                                     </div>
                                 </label>
@@ -752,41 +731,40 @@
                         </div>`;
                     }
                 } else {
+                    const optString = String(itemData[key]);
+                    const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
+                    
                     if (key === '說明' || key === '備註' || key === '描述') {
-                        // 說明欄位直接顯示文字，不渲染下拉選單
                         optionsHtml += `
-                        <div class="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                            <h4 class="text-lg font-bold text-slate-600 mb-2">${key}</h4>
-                            <p class="text-xl text-slate-700 leading-relaxed">${itemData[key]}</p>
+                        <div class="mb-4 sm:mb-6 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
+                            <h4 class="text-sm sm:text-lg font-bold text-slate-600 mb-2 flex justify-between items-center">
+                                <span>${key}</span>
+                            </h4>
+                            <p class="text-base sm:text-lg text-slate-700 leading-relaxed font-medium">${optString}</p>
                         </div>`;
-                    } else {
-                        const optString = String(itemData[key]);
-                        const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
+                    } else if (options.length > 0) {
+                        state.tempItem.selectedSpec[key] = '';
+                        optionsHtml += `
+                        <div class="mb-4 sm:mb-6 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
+                            <h4 class="text-sm sm:text-lg font-bold text-slate-600 mb-2 sm:mb-3 flex justify-between items-center">
+                                <span>${key}</span>
+                                <span class="text-xs sm:text-base font-normal text-slate-400 bg-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-slate-200">必選</span>
+                            </h4>
+                            <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 sm:px-4 sm:py-4 text-base sm:text-xl font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
+                                <option value="" disabled selected>-- 請選擇 --</option>`;
                         
-                        if (options.length > 0) {
-                            state.tempItem.selectedSpec[key] = '';
-                            optionsHtml += `
-                            <div class="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                                <h4 class="text-lg font-bold text-slate-600 mb-3 flex justify-between items-center">
-                                    <span>${key}</span>
-                                    <span class="text-base font-normal text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">必選</span>
-                                </h4>
-                                <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-xl font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
-                                    <option value="" disabled selected>-- 請選擇 --</option>`;
-                            
-                            options.forEach(opt => {
-                                let extra = 0; let displayName = opt;
-                                const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
-                                if (priceMatch) {
-                                    extra = parseInt(priceMatch[1]);
-                                    displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
-                                }
-                                const valueData = `${displayName}|${extra}`;
-                                optionsHtml += `<option value="${valueData}">${displayName}</option>`;
-                            });
-                            
-                            optionsHtml += `</select></div>`;
-                        }
+                        options.forEach(opt => {
+                            let extra = 0; let displayName = opt;
+                            const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
+                            if (priceMatch) {
+                                extra = parseInt(priceMatch[1]);
+                                displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
+                            }
+                            const valueData = `${displayName}|${extra}`;
+                            optionsHtml += `<option value="${valueData}">${displayName}</option>`;
+                        });
+                        
+                        optionsHtml += `</select></div>`;
                     }
                 }
             }
@@ -899,6 +877,7 @@
                         <p class="text-slate-500 text-xl">趕快去菜單播下美味的種子吧！</p>
                         <button onclick="switchTab('menu')" class="mt-8 px-10 py-5 theme-light theme-text font-bold text-2xl rounded-2xl active:scale-95 transition-transform">去探索菜單</button>
                     </div>`;
+                lucide.createIcons();
                 return;
             }
 
@@ -966,24 +945,21 @@
         }
 
         function renderProfileTab(container) {
-            const isAdmin = state.user.role === '管理';
-            const roleName = isAdmin ? '指揮官' : (state.user.isGuest ? '團購夥伴' : '探險家');
-            
             let html = `<div class="p-4 space-y-6 pb-safe">
                 <div class="bg-[#006241] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
                     <svg class="absolute -right-4 -top-4 w-32 h-32 opacity-10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z"/></svg>
-                    <h2 class="text-xl font-bold opacity-80 mb-1">${roleName}</h2>
+                    <h2 class="text-xl font-bold opacity-80 mb-1">${state.user.isGuest ? '探險家(團購)' : (state.user.role === '管理' ? '指揮官' : '探險家')}</h2>
                     <h1 class="text-[40px] font-black tracking-wide mb-6">${state.user.name}</h1>
-                    <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-xl font-bold py-2.5 px-6 rounded-xl transition-colors">切換帳號或登出</button>
+                    <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-xl font-bold py-2.5 px-6 rounded-xl transition-colors">切換帳號</button>
                 </div>`;
 
-            // 一般探險家/訪客才顯示「今日個人紀錄」，管理員隱藏
-            if (!isAdmin) {
+            // 【版面分流】非管理員顯示個人紀錄，管理員隱藏
+            if (state.user.role !== '管理' || state.user.isGuest) {
                 html += `
                 <div>
-                    <h3 class="text-3xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="file-text" class="w-8 h-8 theme-text"></i> 我的點餐紀錄</h3>
+                    <h3 class="text-3xl font-black text-slate-800 mb-5 flex items-center gap-2"><i data-lucide="file-text" class="w-8 h-8 theme-text"></i> 今日個人紀錄</h3>
                     ${state.data.userOrders.length === 0 ? 
-                        `<div class="bg-white p-6 rounded-3xl border border-slate-100 text-center text-slate-400 text-xl shadow-sm">尚未有任何餐點紀錄喔！</div>` : 
+                        `<div class="bg-white p-6 rounded-3xl border border-slate-100 text-center text-slate-400 text-xl shadow-sm">今天還沒有培育任何餐點喔！</div>` : 
                         `<div class="space-y-4">
                             ${state.data.userOrders.map(order => `
                                 <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
@@ -1008,8 +984,7 @@
                 </div>`;
             }
 
-            // 管理員專屬：指揮官控制台
-            if (isAdmin) {
+            if (state.user.role === '管理' && !state.user.isGuest) {
                 html += `
                 <div class="mt-4">
                     <h3 class="text-3xl font-black text-slate-800 mb-6 flex items-center gap-2"><i data-lucide="command" class="w-8 h-8 theme-text"></i> 指揮官控制台</h3>
@@ -1033,6 +1008,7 @@
 
             html += `</div>`;
             container.innerHTML = html;
+            lucide.createIcons();
         }
 
         async function deleteOrder(id) {
@@ -1041,27 +1017,14 @@
             if (res) { showAlert(res); loadInitialData(); }
         }
 
-        function adminDeleteOrder(id) {
-            showConfirm('確定要強制刪除這筆訂單嗎？刪除後將無法復原。', async () => {
-                showLoading('正在刪除中...');
-                const res = await apiCall('deleteOrder', { orderId: id });
-                if (res) { 
-                    await silentReload(); // 背景刷新資料
-                    fetchAdminData('dashboard'); // 重新繪製核銷檯
-                }
-            });
-        }
-
+        // --- 管理員：發餐與批次儲存 ---
+        
         async function fetchAdminData(viewType) {
-            // 切換視圖時清空未儲存的狀態
-            state.pendingUpdates = {};
-            hideBatchSaveBar();
-            
             showLoading('讀取物資報告中...');
             const res = await apiCall('adminGetTodayData');
             hideLoading();
             if (res) {
-                state.adminDataCache = res; // 快取起來給 PDF 匯出使用
+                state.adminDataCache = res; // 暫存資料
                 const container = document.getElementById('mainContent');
                 if (viewType === 'dashboard') renderAdminDashboard(container, res.summaryByUser);
                 if (viewType === 'list') renderAdminOrderList(container, res.summaryByShop);
@@ -1069,18 +1032,21 @@
         }
 
         function renderAdminDashboard(container, summaryByUser) {
+            state.pendingUpdates = {}; // 進入畫面時清空暫存
+            hideBatchSaveBar();
+            
             let contentHtml = '';
             
             if (summaryByUser.length === 0) {
-                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">尚無物資紀錄</div>`;
+                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">目前尚無物資紀錄</div>`;
             } else {
-                summaryByUser.forEach((user, userIdx) => {
+                summaryByUser.forEach(user => {
                     const isAllDone = user.paid && user.taken;
                     const orderIds = user.orders.map(o => o['訂單編號']).join(','); 
                     
                     contentHtml += `
-                    <div class="bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-6 mb-5 relative overflow-hidden transition-colors" id="userCard-${userIdx}">
-                        ${isAllDone ? `<div class="absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-bl-full flex items-start justify-end p-5"><i data-lucide="check-circle" class="w-8 h-8 text-emerald-500"></i></div>` : ''}
+                    <div class="user-card bg-white rounded-3xl shadow-sm border ${isAllDone ? 'border-emerald-200 bg-emerald-50/30' : 'border-slate-200'} p-6 mb-5 relative overflow-hidden transition-colors">
+                        ${isAllDone ? `<div class="all-done-badge absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-bl-full flex items-start justify-end p-5"><i data-lucide="check-circle" class="w-8 h-8 text-emerald-500"></i></div>` : '<div class="all-done-badge hidden absolute top-0 right-0 w-24 h-24 bg-emerald-100 rounded-bl-full flex items-start justify-end p-5"><i data-lucide="check-circle" class="w-8 h-8 text-emerald-500"></i></div>'}
                         
                         <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
                             <h3 class="text-3xl font-black text-slate-800">${user.name}</h3>
@@ -1094,7 +1060,7 @@
 
                     user.orders.forEach(order => {
                         contentHtml += `
-                            <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl relative">
+                            <div class="order-item-container flex justify-between items-start p-4 bg-slate-50 rounded-2xl relative transition-all">
                                 <div class="flex-1 min-w-0 pr-6">
                                     <span class="text-sm font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
                                     <span class="font-bold text-slate-700 text-xl align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
@@ -1102,7 +1068,7 @@
                                 </div>
                                 <div class="flex flex-col items-end gap-3 shrink-0">
                                     <span class="font-bold text-slate-700 text-2xl leading-none">$${order['小計']}</span>
-                                    <button onclick="adminDeleteOrder('${order['訂單編號']}')" class="text-slate-400 hover:text-red-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="刪除此訂單">
+                                    <button onclick="queueDeleteOrder('${order['訂單編號']}', this)" class="text-slate-400 hover:text-red-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="標記刪除此訂單">
                                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                                     </button>
                                 </div>
@@ -1112,11 +1078,11 @@
                     contentHtml += `
                         </div>
                         <div class="flex gap-4 mt-6 pt-5 border-t border-slate-100">
-                            <button id="btnPay-${userIdx}" onclick="queueUserBatchUpdate(${userIdx}, 'pay', '${user.paid ? '未繳費' : '已繳費'}', '${orderIds}')" 
+                            <button id="btn-pay-${user.name}" onclick="queueStatusUpdate('${orderIds}', 'pay', '${user.paid ? '未繳費' : '已繳費'}', this, '${user.name}')" 
                                 class="flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${user.paid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
                                 <i data-lucide="dollar-sign" class="w-7 h-7"></i> <span>${user.paid ? '已收全額' : '一鍵收滿全額'}</span>
                             </button>
-                            <button id="btnTake-${userIdx}" onclick="queueUserBatchUpdate(${userIdx}, 'take', '${user.taken ? '未取餐' : '已取餐'}', '${orderIds}')" 
+                            <button id="btn-take-${user.name}" onclick="queueStatusUpdate('${orderIds}', 'take', '${user.taken ? '未取餐' : '已取餐'}', this, '${user.name}')" 
                                 class="flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${user.taken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}">
                                 <i data-lucide="coffee" class="w-7 h-7"></i> <span>${user.taken ? '已全給餐' : '一鍵全部給餐'}</span>
                             </button>
@@ -1126,46 +1092,95 @@
             }
 
             container.innerHTML = `
-            <div class="p-4 pb-[8rem] bg-slate-50 min-h-full">
-                <div class="flex items-center justify-between mb-6">
+            <div class="p-4 pb-safe bg-slate-50 min-h-full">
+                <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center gap-3">
                         <button onclick="switchTab('profile')" class="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-90 transition-all"><i data-lucide="arrow-left" class="w-8 h-8"></i></button>
                         <h2 class="text-3xl font-black text-slate-800">發餐與核銷檯</h2>
                     </div>
-                    <button onclick="printDistributionList()" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-700 active:scale-95 transition-all">
-                        <i data-lucide="printer" class="w-5 h-5"></i> 匯出 PDF
-                    </button>
+                    ${summaryByUser.length > 0 ? `<button onclick="exportPdf('dispatch')" class="bg-slate-800 text-white font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 hover:bg-slate-700 active:scale-95 transition-all text-lg shadow-sm"><i data-lucide="printer" class="w-5 h-5"></i> 匯出 PDF</button>` : ''}
                 </div>
                 ${contentHtml}
             </div>`;
             lucide.createIcons();
         }
 
-        // 瞬間切換畫面狀態，並推入儲存佇列
-        function queueUserBatchUpdate(userIdx, type, targetStatus, orderIdsStr) {
-            const btn = document.getElementById(type === 'pay' ? `btnPay-${userIdx}` : `btnTake-${userIdx}`);
-            const ids = orderIdsStr.split(',');
-            
-            // 寫入佇列
+        // 瞬間切換畫面狀態並記錄
+        function queueStatusUpdate(orderIds, type, status, btnElement, userName) {
+            const ids = orderIds.split(',');
             ids.forEach(id => {
                 if (!state.pendingUpdates[id]) state.pendingUpdates[id] = {};
-                state.pendingUpdates[id][type] = targetStatus;
+                state.pendingUpdates[id][type] = status;
             });
 
-            // 瞬間變更該按鈕的 UI 與下一次點擊的預設行為
-            if (type === 'pay') {
-                const isNowPaid = targetStatus === '已繳費';
-                btn.className = `flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${isNowPaid ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border-2 border-slate-200 text-slate-600 shadow-sm'}`;
-                btn.querySelector('span').textContent = isNowPaid ? '已收全額' : '一鍵收滿全額';
-                btn.setAttribute('onclick', `queueUserBatchUpdate(${userIdx}, 'pay', '${isNowPaid ? '未繳費' : '已繳費'}', '${orderIdsStr}')`);
-            } else {
-                const isNowTaken = targetStatus === '已取餐';
-                btn.className = `flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${isNowTaken ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white border-2 border-slate-200 text-slate-600 shadow-sm'}`;
-                btn.querySelector('span').textContent = isNowTaken ? '已全給餐' : '一鍵全部給餐';
-                btn.setAttribute('onclick', `queueUserBatchUpdate(${userIdx}, 'take', '${isNowTaken ? '未取餐' : '已取餐'}', '${orderIdsStr}')`);
-            }
+            // 秒切換畫面按鈕樣式
+            const isDone = (status === '已繳費' || status === '已取餐');
+            const colorClass = type === 'pay' ? 'emerald' : 'blue';
+            const iconName = type === 'pay' ? 'dollar-sign' : 'coffee';
+            const textDone = type === 'pay' ? '已收全額' : '已全給餐';
+            const textNotDone = type === 'pay' ? '一鍵收滿全額' : '一鍵全部給餐';
+
+            btnElement.className = `flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${isDone ? `bg-${colorClass}-100 text-${colorClass}-700 border border-${colorClass}-200` : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}`;
+            btnElement.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i> <span>${isDone ? textDone : textNotDone}</span>`;
             
+            // 由於改了 HTML 結構，需要重新 onclick 綁定反向狀態
+            const nextStatus = isDone ? (type==='pay'?'未繳費':'未取餐') : (type==='pay'?'已繳費':'已取餐');
+            btnElement.setAttribute('onclick', `queueStatusUpdate('${orderIds}', '${type}', '${nextStatus}', this, '${userName}')`);
+
+            checkUserAllDone(userName);
+            lucide.createIcons();
             updateBatchSaveBar();
+        }
+
+        function queueDeleteOrder(orderId, btnElement) {
+            const isDeleting = state.pendingUpdates[orderId] && state.pendingUpdates[orderId].delete;
+
+            if (isDeleting) {
+                // 再次點擊 -> 撤銷標記刪除，恢復原狀
+                delete state.pendingUpdates[orderId].delete;
+                if (Object.keys(state.pendingUpdates[orderId]).length === 0) {
+                    delete state.pendingUpdates[orderId];
+                }
+                
+                // 恢復 UI 顏色與圖示
+                const container = btnElement.closest('.order-item-container');
+                container.classList.remove('opacity-50', 'bg-red-50');
+                btnElement.innerHTML = '<i data-lucide="trash-2" class="w-5 h-5"></i>';
+                btnElement.classList.remove('text-red-500', 'bg-red-100', 'border-red-200');
+                btnElement.classList.add('text-slate-400', 'bg-white', 'border-slate-200');
+            } else {
+                // 首次點擊 -> 標記為待刪除
+                if (!state.pendingUpdates[orderId]) state.pendingUpdates[orderId] = {};
+                state.pendingUpdates[orderId].delete = true;
+
+                // 更新 UI 為淡化及紅色狀態
+                const container = btnElement.closest('.order-item-container');
+                container.classList.add('opacity-50', 'bg-red-50');
+                btnElement.innerHTML = '<i data-lucide="rotate-ccw" class="w-5 h-5"></i>'; // 換成復原圖示
+                btnElement.classList.add('text-red-500', 'bg-red-100', 'border-red-200');
+                btnElement.classList.remove('text-slate-400', 'bg-white', 'border-slate-200');
+            }
+
+            lucide.createIcons();
+            updateBatchSaveBar();
+        }
+
+        function checkUserAllDone(userName) {
+            const payBtnText = document.querySelector(`#btn-pay-${userName} span`).textContent;
+            const takeBtnText = document.querySelector(`#btn-take-${userName} span`).textContent;
+            
+            const userCard = document.querySelector(`#btn-pay-${userName}`).closest('.user-card');
+            const badge = userCard.querySelector('.all-done-badge');
+
+            if (payBtnText === '已收全額' && takeBtnText === '已全給餐') {
+                userCard.classList.add('border-emerald-200', 'bg-emerald-50/30');
+                userCard.classList.remove('border-slate-200');
+                badge.classList.remove('hidden');
+            } else {
+                userCard.classList.remove('border-emerald-200', 'bg-emerald-50/30');
+                userCard.classList.add('border-slate-200');
+                badge.classList.add('hidden');
+            }
         }
 
         function updateBatchSaveBar() {
@@ -1185,28 +1200,41 @@
         function hideBatchSaveBar() {
             const bar = document.getElementById('batchSaveBar');
             bar.classList.add('translate-y-full', 'opacity-0');
-            setTimeout(() => bar.classList.add('hidden'), 300);
+            setTimeout(() => {
+                bar.classList.add('hidden');
+            }, 300);
+        }
+
+        function cancelBatchUpdates() {
+            state.pendingUpdates = {};
+            hideBatchSaveBar();
+            // 從快取瞬間重繪核銷檯，恢復所有原始 UI 狀態
+            if (state.adminDataCache) {
+                renderAdminDashboard(document.getElementById('mainContent'), state.adminDataCache.summaryByUser);
+            }
         }
 
         async function commitBatchUpdates() {
             if (Object.keys(state.pendingUpdates).length === 0) return;
-            showLoading('正在批次儲存變更中...');
             
+            showLoading('正在批次上傳所有變更...');
             const res = await apiCall('adminBatchUpdateStatus', { updates: state.pendingUpdates });
             if (res) {
-                // 儲存成功後清空佇列並重拉資料重新渲染
-                state.pendingUpdates = {};
-                hideBatchSaveBar();
-                fetchAdminData('dashboard'); 
+                showAlert(res, '儲存成功');
+                fetchAdminData('dashboard'); // 重新抓取乾淨資料
+            } else {
+                hideLoading();
             }
         }
+
+        // --- 管理員：實戰訂購清單 ---
 
         function renderAdminOrderList(container, summaryByShop) {
             let contentHtml = '';
             const shops = Object.keys(summaryByShop);
             
             if (shops.length === 0) {
-                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">尚無訂單</div>`;
+                contentHtml = `<div class="text-center text-slate-500 mt-10 text-2xl">目前尚無訂單</div>`;
             } else {
                 shops.forEach(shop => {
                     const shopData = summaryByShop[shop];
@@ -1257,149 +1285,123 @@
 
             container.innerHTML = `
             <div class="p-4 pb-safe bg-slate-50 min-h-full">
-                <div class="flex items-center justify-between mb-6">
+                <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center gap-3">
                         <button onclick="switchTab('profile')" class="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:bg-slate-100 active:scale-90 transition-all"><i data-lucide="arrow-left" class="w-8 h-8"></i></button>
                         <h2 class="text-3xl font-black text-slate-800">實戰訂購清單</h2>
                     </div>
-                    <button onclick="printShopOrderList()" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-700 active:scale-95 transition-all">
-                        <i data-lucide="printer" class="w-5 h-5"></i> 匯出 PDF
-                    </button>
+                    ${shops.length > 0 ? `<button onclick="exportPdf('order')" class="bg-slate-800 text-white font-bold py-2.5 px-4 rounded-xl flex items-center gap-2 hover:bg-slate-700 active:scale-95 transition-all text-lg shadow-sm"><i data-lucide="printer" class="w-5 h-5"></i> 匯出 PDF</button>` : ''}
                 </div>
                 ${contentHtml}
             </div>`;
             lucide.createIcons();
         }
 
-        function printDistributionList() {
-            if (!state.adminDataCache || !state.adminDataCache.summaryByUser || state.adminDataCache.summaryByUser.length === 0) {
-                return showAlert('目前沒有任何資料可以列印。');
-            }
-            
-            let printHtml = `
-            <div class="mb-6 pb-4 border-b-2 border-black flex justify-between items-end">
-                <div>
-                    <h1 class="text-3xl font-black mb-2">皮客覓 - 發餐與核銷點名表</h1>
-                    <p class="text-lg text-gray-600">列印時間：${new Date().toLocaleString()}</p>
-                </div>
-                <div class="text-xl font-bold">總份數：${state.adminDataCache.allOrders.length} 份</div>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:15%">姓名</th>
-                        <th style="width:50%">點餐內容 (店家 / 品項規格)</th>
-                        <th style="width:15%">價錢</th>
-                        <th style="width:10%; text-align:center;">已繳費</th>
-                        <th style="width:10%; text-align:center;">已取餐</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+        // --- 管理員：PDF 匯出邏輯 ---
 
-            state.adminDataCache.summaryByUser.forEach(user => {
-                user.orders.forEach((order, idx) => {
-                    const isFirstInGroup = idx === 0;
-                    printHtml += `
-                    <tr>
-                        <td class="font-bold">${isFirstInGroup ? user.name : ''}</td>
-                        <td>
-                            <div class="font-bold">${order['品項']} x${order['數量']}</div>
-                            <div class="text-sm text-gray-600">[${order['店家']}] ${order['規格']||order['訂購內容'] || ''}</div>
-                        </td>
-                        <td class="font-bold">$${order['小計']}</td>
-                        <td style="text-align:center;"><div class="print-checkbox"></div></td>
-                        <td style="text-align:center;"><div class="print-checkbox"></div></td>
-                    </tr>`;
-                });
-            });
-
-            printHtml += `</tbody></table>`;
-            
-            executePrint(printHtml);
-        }
-
-        function printShopOrderList() {
-            if (!state.adminDataCache || !state.adminDataCache.summaryByShop || Object.keys(state.adminDataCache.summaryByShop).length === 0) {
-                return showAlert('目前沒有任何訂單可以列印。');
-            }
-            
-            let printHtml = `
-            <div class="mb-6 pb-4 border-b-2 border-black">
-                <h1 class="text-3xl font-black mb-2">皮客覓 - 實戰訂購清單 (對外叫餐用)</h1>
-                <p class="text-lg text-gray-600">列印時間：${new Date().toLocaleString()}</p>
-            </div>`;
-
-            const shops = Object.keys(state.adminDataCache.summaryByShop);
-            shops.forEach((shop, index) => {
-                const shopData = state.adminDataCache.summaryByShop[shop];
-                const phone = state.data.shopPhones[shop] || '無電話';
-                const extraName = state.data.shopExtraNames ? state.data.shopExtraNames[shop] : '';
-                
-                printHtml += `
-                <div class="mb-8 p-4 border-2 border-black rounded-lg ${index > 0 ? 'print-page-break' : ''}">
-                    <div class="flex justify-between items-end mb-4 border-b border-gray-400 pb-2">
-                        <h2 class="text-2xl font-black">${shop} ${extraName ? `(${extraName})` : ''}</h2>
-                        <h3 class="text-xl font-bold">聯絡電話：${phone}</h3>
-                    </div>
-                    <table class="mb-4">
-                        <thead>
-                            <tr>
-                                <th style="width:70%">訂購品項 (含規格)</th>
-                                <th style="width:15%; text-align:center;">份數</th>
-                                <th style="width:15%; text-align:right;">小計</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-                
-                for (let itemName in shopData.items) {
-                    const item = shopData.items[itemName];
-                    printHtml += `
-                    <tr>
-                        <td class="font-bold text-lg">${itemName}</td>
-                        <td style="text-align:center;" class="font-black text-xl">${item.count}</td>
-                        <td style="text-align:right;">$${item.subtotal}</td>
-                    </tr>`;
-                }
-
-                printHtml += `
-                        </tbody>
-                    </table>
-                    <div class="text-right text-2xl font-black mt-2 pt-2 border-t-2 border-black">
-                        此店家訂購總額：$${shopData.totalAmount}
-                    </div>
-                </div>`;
-            });
-            
-            executePrint(printHtml);
-        }
-
-        function executePrint(htmlContent) {
+        function exportPdf(type) {
             const printArea = document.getElementById('printArea');
-            printArea.innerHTML = htmlContent;
+            let html = '';
+
+            if (type === 'dispatch') {
+                // 發餐核銷表 (A4 黑白排版)
+                html = `<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">皮客覓 發餐與核銷點名表</h1>`;
+                
+                state.adminDataCache.summaryByUser.forEach(user => {
+                    html += `
+                    <div style="border: 2px solid #000; margin-bottom: 20px; padding: 15px; page-break-inside: avoid;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-bottom: 10px;">
+                            <h2 style="font-size: 20px; font-weight: bold; margin: 0;">${user.name}</h2>
+                            <h3 style="font-size: 18px; margin: 0;">總計: $${user.total}</h3>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #000;">
+                                    <th style="text-align: left; padding: 5px; width: 60%;">點餐內容</th>
+                                    <th style="text-align: right; padding: 5px; width: 15%;">價錢</th>
+                                    <th style="text-align: center; padding: 5px; width: 12%;">已繳費</th>
+                                    <th style="text-align: center; padding: 5px; width: 12%;">已取餐</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    user.orders.forEach(order => {
+                        html += `
+                                <tr style="border-bottom: 1px dashed #ccc;">
+                                    <td style="padding: 8px 5px;">
+                                        <strong>[${order['店家']}]</strong> ${order['品項']} x${order['數量']}<br>
+                                        <span style="font-size: 12px; color: #666;">${order['規格']||order['訂購內容']}</span>
+                                    </td>
+                                    <td style="text-align: right; padding: 8px 5px;">$${order['小計']}</td>
+                                    <td style="text-align: center; padding: 8px 5px;"><div style="width: 20px; height: 20px; border: 1px solid #000; display: inline-block;"></div></td>
+                                    <td style="text-align: center; padding: 8px 5px;"><div style="width: 20px; height: 20px; border: 1px solid #000; display: inline-block;"></div></td>
+                                </tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                });
+
+            } else if (type === 'order') {
+                // 實戰訂購清單 (向店家叫餐用)
+                html = `<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">皮客覓 實戰訂購清單 (給店家)</h1>`;
+                
+                const shops = Object.keys(state.adminDataCache.summaryByShop);
+                shops.forEach(shop => {
+                    const shopData = state.adminDataCache.summaryByShop[shop];
+                    const phone = state.data.shopPhones[shop] || '無電話';
+                    
+                    html += `
+                    <div style="border: 2px solid #000; margin-bottom: 30px; padding: 15px; page-break-inside: avoid;">
+                        <h2 style="font-size: 22px; font-weight: bold; margin: 0 0 5px 0;">${shop}</h2>
+                        <p style="font-size: 14px; margin: 0 0 15px 0; color: #333;">聯絡電話: ${phone}</p>
+                        
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #000;">
+                                    <th style="text-align: left; padding: 8px 5px;">訂購品項 (含規格)</th>
+                                    <th style="text-align: center; padding: 8px 5px; width: 15%;">份數</th>
+                                    <th style="text-align: right; padding: 8px 5px; width: 20%;">小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                            
+                    for (let itemName in shopData.items) {
+                        const item = shopData.items[itemName];
+                        html += `
+                                <tr style="border-bottom: 1px solid #ccc;">
+                                    <td style="padding: 10px 5px; font-size: 16px;">${itemName}</td>
+                                    <td style="text-align: center; padding: 10px 5px; font-size: 16px; font-weight: bold;">${item.count}</td>
+                                    <td style="text-align: right; padding: 10px 5px;">$${item.subtotal}</td>
+                                </tr>`;
+                    }
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                        <div style="margin-top: 15px; text-align: right; font-size: 20px; font-weight: bold;">
+                            此店家訂購總額: $${shopData.totalAmount}
+                        </div>
+                    </div>`;
+                });
+            }
+
+            printArea.innerHTML = html;
             
-            // 稍等 DOM 渲染後呼叫列印
-            setTimeout(() => {
-                window.print();
-                // 印完後清空
-                printArea.innerHTML = '';
-            }, 300);
+            // 呼叫瀏覽器列印 (CSS 中已設定 @media print 隱藏其他元素)
+            window.print();
         }
+
+        // --- 管理員：系統設定 ---
 
         function renderAdminSettings() {
             let contentHtml = `
-            <!-- 第一項：營運開關與團購網址產生器 -->
+            <!-- 第一項：營運開關 (可摺疊，預設展開) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden" open>
-                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
-                    <span class="border-l-4 border-[#006241] pl-3">營運開關</span>
-                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
-                </summary>
-                <div class="p-6 pt-0 border-t border-slate-100">
-                    <div class="flex justify-end mb-4 mt-2">
-                        <button onclick="openQrModal()" class="bg-emerald-100 text-emerald-700 font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-200 active:scale-95 transition-all text-sm">
-                            <i data-lucide="share-2" class="w-5 h-5"></i> 產生免登入報到連結
-                        </button>
+                <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white transition-colors border-l-4 border-[#006241]">
+                    營運開關
+                    <div class="flex items-center gap-4">
+                        <button onclick="openQrModal(event)" class="text-sm font-bold text-[#006241] bg-[#e8f3ee] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-[#d1e8de] transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> 產生免登入報到連結</button>
                     </div>
-                    
+                </summary>
+                <div class="px-6 pb-6 pt-2 border-t border-slate-100">
                     <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
                         <span class="text-xl font-bold text-slate-700">開放點餐</span>
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -1428,68 +1430,76 @@
                 </div>
             </details>
 
-            <!-- 第二項：更新現有店家資訊 (使用摺疊收納) -->
+            <!-- 第二項：更新現有店家資訊 (可摺疊) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
-                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
-                    <span class="border-l-4 border-blue-600 pl-3">覆寫更新現有店家</span>
+                <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-slate-50 transition-colors border-l-4 border-blue-500">
+                    更新現有店家圖片與電話
                     <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
                 </summary>
-                <div class="p-6 pt-0 border-t border-slate-100">
-                    <div class="space-y-4 mt-4">
-                        <select id="updateShopName" onchange="loadShopDataForUpdate(this.value)" class="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 text-xl font-bold text-blue-900 focus:ring-2 focus:ring-blue-600 outline-none cursor-pointer">
-                            <option value="">-- 先選擇要更新的店家 --</option>
+                <div class="px-6 pb-6 pt-2 border-t border-slate-100">
+                    <div class="space-y-4 mt-2">
+                        <select id="updateShopName" onchange="loadShopDataForUpdate(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold text-slate-700 focus:ring-2 focus:ring-[#006241] outline-none cursor-pointer">
+                            <option value="">-- 選擇要更新的店家 --</option>
                             ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
                         </select>
-                        
-                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            <label class="block text-base font-bold text-slate-600 mb-2">更新店家圖片與電話</label>
-                            <input type="text" id="updateShopImg" placeholder="線上圖片網址 或 官網連結 (https://...)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                            <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                            <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-blue-600 outline-none text-slate-700 mb-3">
-                            <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-lg font-bold py-3 rounded-xl hover:bg-slate-700 active:scale-95 transition-all">儲存圖片與電話資訊</button>
-                        </div>
-
-                        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 mt-4">
-                            <label class="block text-base font-bold text-amber-800 mb-2 flex items-center gap-2"><i data-lucide="table" class="w-5 h-5"></i> 覆寫整份菜單資料 (可批次調價)</label>
-                            <p class="text-sm text-amber-700 mb-3">將 Excel 範圍圈選複製貼上於此，這會清空舊菜單並重新寫入！請確保第一行包含「品項」標題。</p>
-                            <textarea id="updateShopMenuData" placeholder="請在此貼上 Excel 的菜單資料..." rows="5" class="w-full bg-white border border-amber-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none font-mono whitespace-pre text-slate-600 mb-3"></textarea>
-                            <button onclick="overwriteShopMenu()" class="w-full bg-amber-500 text-white text-lg font-bold py-3 rounded-xl hover:bg-amber-600 active:scale-95 transition-all shadow-md">覆寫上傳最新菜單</button>
-                        </div>
+                        <input type="text" id="updateShopImg" placeholder="線上圖片網址 或 官網連結 (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                        <input type="text" id="updateShopPhone" placeholder="聯絡電話 (例如: 07-1234567)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                        <input type="text" id="updateShopExtra" placeholder="店家分店或備註 (例如: 鳳西)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                        <button onclick="updateShopInfo()" class="w-full bg-slate-800 text-white text-2xl font-bold py-4 rounded-xl hover:bg-slate-700 active:scale-95 transition-all shadow-lg">更新店家圖片與電話</button>
                     </div>
                 </div>
             </details>
 
-            <!-- 第三項：新增全新店家 (使用摺疊收納) -->
-            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
-                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
-                    <span class="border-l-4 border-emerald-500 pl-3">新增全新店家 (從 Excel 貼上)</span>
-                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+            <!-- 第三項：Excel 覆寫更新菜單 (可摺疊) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-emerald-200 mb-6 overflow-hidden">
+                <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-emerald-50 transition-colors border-l-4 border-emerald-500">
+                    覆寫更新現有店家菜單 (Excel貼上)
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-emerald-500"></i>
                 </summary>
-                <div class="p-6 pt-0 border-t border-slate-100">
-                    <div class="space-y-4 mt-4">
-                        <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                        <textarea id="newShopMenuData" placeholder="請直接將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，並在此處貼上..." rows="5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-base focus:ring-2 focus:ring-emerald-500 outline-none font-mono whitespace-pre text-slate-600"></textarea>
-                        <input type="text" id="newShopImg" placeholder="線上圖片網址 或 官網連結 (選填)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                        <div class="flex gap-3">
-                            <input type="text" id="newShopPhone" placeholder="聯絡電話" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                            <input type="text" id="newShopExtra" placeholder="分店備註" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
-                        </div>
-                        <button onclick="addNewShop()" class="w-full theme-green text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2 mt-2">
+                <div class="px-6 pb-6 pt-2 border-t border-emerald-100">
+                    <p class="text-slate-500 mb-4 font-medium">若店家價格異動，請直接複製整塊新 Excel 菜單貼在此處覆寫。系統會保留原本設定好的圖片與電話。</p>
+                    <div class="space-y-4">
+                        <select id="overwriteShopName" class="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xl font-bold text-emerald-800 focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer">
+                            <option value="">-- 選擇要覆寫菜單的店家 --</option>
+                            ${state.data.allShops.map(s => `<option value="${s}">${s}</option>`).join('')}
+                        </select>
+                        <textarea id="overwriteShopMenuData" placeholder="請將 Excel 的菜單資料 (包含第一行標題列) 圈選複製，貼上..." rows="6" class="w-full bg-white border border-emerald-200 rounded-xl p-4 text-lg focus:ring-2 focus:ring-emerald-500 outline-none font-mono whitespace-pre text-slate-600"></textarea>
+                        <button onclick="overwriteShopMenu()" class="w-full bg-emerald-600 text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30 flex items-center justify-center gap-2">
+                            <i data-lucide="copy-check" class="w-6 h-6"></i> 確定覆寫店家菜單
+                        </button>
+                    </div>
+                </div>
+            </details>
+
+            <!-- 第四項：新增全新店家 (可摺疊) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-amber-200 mb-6 overflow-hidden">
+                <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-amber-50 transition-colors border-l-4 border-amber-500">
+                    新增全新店家 (從 Excel 建立)
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-amber-500"></i>
+                </summary>
+                <div class="px-6 pb-6 pt-2 border-t border-amber-100">
+                    <div class="space-y-5 mt-2">
+                        <input type="text" id="newShopName" placeholder="新店家名稱 (例如：丹丹漢堡)" class="w-full bg-amber-50 border border-amber-200 rounded-xl p-4 text-xl font-bold focus:ring-2 focus:ring-amber-500 outline-none text-amber-800">
+                        <textarea id="newShopMenuData" placeholder="請將 Excel 菜單資料 (含標題列) 圈選複製，貼上..." rows="6" class="w-full bg-white border border-amber-200 rounded-xl p-4 text-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono whitespace-pre text-slate-600"></textarea>
+                        <input type="text" id="newShopImg" placeholder="線上圖片網址或官網 (選填)" class="w-full bg-white border border-amber-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-amber-500 outline-none text-slate-700">
+                        <input type="text" id="newShopPhone" placeholder="聯絡電話 (選填)" class="w-full bg-white border border-amber-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-amber-500 outline-none text-slate-700">
+                        <input type="text" id="newShopExtra" placeholder="店家分店或備註 (選填)" class="w-full bg-white border border-amber-200 rounded-xl p-4 text-xl focus:ring-2 focus:ring-amber-500 outline-none text-slate-700">
+                        <button onclick="addNewShop()" class="w-full bg-amber-500 text-white text-xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2">
                             <i data-lucide="plus-circle" class="w-6 h-6"></i> 建立新店家
                         </button>
                     </div>
                 </div>
             </details>
 
-            <!-- 第四項：人氣排行榜引擎 (使用摺疊收納) -->
-            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
-                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
-                    <span class="border-l-4 border-orange-400 pl-3">人氣排行榜引擎</span>
-                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+            <!-- 第五項：人氣排行榜引擎 (可摺疊) -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-purple-200 mb-6 overflow-hidden">
+                <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-purple-50 transition-colors border-l-4 border-purple-500">
+                    人氣排行榜計算引擎
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-purple-500"></i>
                 </summary>
-                <div class="p-6 pt-0 border-t border-slate-100">
-                    <p class="text-lg text-slate-500 mb-5 mt-4 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
-                    <button onclick="adminUpdatePopularity()" class="w-full bg-orange-50 text-orange-600 border-2 border-orange-200 text-xl font-bold py-4 rounded-xl hover:bg-orange-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
+                <div class="px-6 pb-6 pt-2 border-t border-purple-100">
+                    <p class="text-lg text-slate-500 mb-5 leading-relaxed">系統將掃描「歷史紀錄」，自動為餐點計算人氣熱度（歷史點購次數），讓探險家能快速點選熱門餐點。</p>
+                    <button onclick="adminUpdatePopularity()" class="w-full bg-purple-50 text-purple-600 border-2 border-purple-200 text-xl font-bold py-4 rounded-xl hover:bg-purple-100 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2">
                         <i data-lucide="flame" class="w-7 h-7"></i> 立即匯入歷史人氣數據
                     </button>
                 </div>
@@ -1512,71 +1522,61 @@
             lucide.createIcons();
         }
 
-        // --- 管理員操作方法實作 ---
-        function openQrModal() {
-            // 產生含有 guest=1 參數的乾淨網址
-            const baseUrl = window.location.href.split('?')[0];
-            const shareUrl = baseUrl + '?guest=1';
+        async function saveSystemSettings() {
+            const checkboxes = document.querySelectorAll('.shop-checkbox:checked');
+            const openedShops = Array.from(checkboxes).map(cb => cb.value);
             
-            document.getElementById('shareLinkInput').value = shareUrl;
-            
-            // 使用 QRious 在本地端直接繪製 QR Code (完全不需要依賴外部圖片 API，保證不破圖)
-            new QRious({
-                element: document.getElementById('qrCodeCanvas'),
-                value: shareUrl,
-                size: 250,
-                level: 'H',
-                foreground: '#0f172a' // slate-900 顏色
-            });
-            
-            const modal = document.getElementById('qrModal');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-95');
-            }, 10);
+            const data = {
+                isOpen: document.getElementById('setIsOpen').checked,
+                openedShops: openedShops,
+                deadline: document.getElementById('setDeadline').value
+            };
+            // 使用靜默更新，停留在原畫面
+            silentReload(); 
+            const res = await apiCall('adminUpdateSystemSettings', data);
+            if (res) { showAlert(res); }
         }
 
-        function closeQrModal() {
-            const modal = document.getElementById('qrModal');
-            modal.classList.add('opacity-0');
-            modal.querySelector('div').classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
+        async function updateShopInfo() {
+            const shop = document.getElementById('updateShopName').value;
+            const imageUrl = document.getElementById('updateShopImg').value.trim();
+            const phone = document.getElementById('updateShopPhone').value.trim();
+            const shopExtra = document.getElementById('updateShopExtra').value.trim();
+            
+            if (!shop) return showAlert('請選擇店家');
+            silentReload();
+            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
+            if (res) { showAlert(res); }
         }
 
-        function copyShareLink() {
-            const copyText = document.getElementById('shareLinkInput');
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); 
-            navigator.clipboard.writeText(copyText.value);
-            showAlert('團購專屬網址已複製到剪貼簿！可以直接貼到 LINE 群組給探險家們囉！', '複製成功');
+        function loadShopDataForUpdate(shopName) {
+            if (!shopName) {
+                document.getElementById('updateShopImg').value = '';
+                document.getElementById('updateShopPhone').value = '';
+                document.getElementById('updateShopExtra').value = '';
+                return;
+            }
+            document.getElementById('updateShopImg').value = state.data.shopImages[shopName] || '';
+            document.getElementById('updateShopPhone').value = state.data.shopPhones[shopName] || '';
+            document.getElementById('updateShopExtra').value = state.data.shopExtraNames[shopName] || '';
         }
 
         async function overwriteShopMenu() {
-            const shop = document.getElementById('updateShopName').value;
-            const rawData = document.getElementById('updateShopMenuData').value.trim();
+            const shop = document.getElementById('overwriteShopName').value;
+            const rawData = document.getElementById('overwriteShopMenuData').value.trim();
             
-            if (!shop) return showAlert('請先在上方下拉選單選擇要覆寫的店家！');
+            if (!shop) return showAlert('請選擇要覆寫的店家！');
             if (!rawData) return showAlert('請貼上 Excel 菜單資料！');
 
-            showConfirm(`確定要用貼上的資料「完全覆寫」 ${shop} 的現有菜單嗎？舊有菜單將被清空！`, async () => {
-                const rows = rawData.split('\n');
-                const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
-                
-                showLoading('皮客覓正在覆寫店家菜單...');
-                const res = await apiCall('adminOverwriteShopMenu', { shop, menuData });
-                if (res) {
-                    showAlert(res);
-                    document.getElementById('updateShopMenuData').value = ''; // 清空輸入框
-                    await silentReload(); hideLoading(); 
-                }
-            });
-        }
+            const rows = rawData.split('\n');
+            const menuData = rows.map(row => row.split('\t').map(cell => cell.trim()));
 
-        async function adminUpdatePopularity() {
-            showLoading('正在掃描歷史紀錄計算人氣...');
-            const res = await apiCall('adminUpdatePopularity');
-            if (res) { showAlert(res); await silentReload(); hideLoading(); }
+            showLoading(`正在覆寫 ${shop} 的菜單...`);
+            const res = await apiCall('adminOverwriteShopMenu', { shop, menuData });
+            if (res) {
+                showAlert(res);
+                loadInitialData(); 
+            }
         }
 
         async function addNewShop() {
@@ -1596,48 +1596,14 @@
             const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone, shopExtra });
             if (res) {
                 showAlert(res);
-                document.getElementById('newShopName').value = '';
-                document.getElementById('newShopMenuData').value = '';
-                await silentReload(); hideLoading(); 
+                loadInitialData(); 
             }
         }
 
-        async function saveSystemSettings() {
-            const checkboxes = document.querySelectorAll('.shop-checkbox:checked');
-            const openedShops = Array.from(checkboxes).map(cb => cb.value);
-            
-            const data = {
-                isOpen: document.getElementById('setIsOpen').checked,
-                openedShops: openedShops,
-                deadline: document.getElementById('setDeadline').value
-            };
-            showLoading('更新設定中...');
-            const res = await apiCall('adminUpdateSystemSettings', data);
-            if (res) { showAlert(res); await silentReload(); hideLoading(); }
-        }
-
-        async function updateShopInfo() {
-            const shop = document.getElementById('updateShopName').value;
-            const imageUrl = document.getElementById('updateShopImg').value.trim();
-            const phone = document.getElementById('updateShopPhone').value.trim();
-            const shopExtra = document.getElementById('updateShopExtra').value.trim();
-            
-            if (!shop) return showAlert('請選擇店家');
-            showLoading('更新店家資料中...');
-            const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
-            if (res) { showAlert(res); await silentReload(); hideLoading(); }
-        }
-
-        function loadShopDataForUpdate(shopName) {
-            if (!shopName) {
-                document.getElementById('updateShopImg').value = '';
-                document.getElementById('updateShopPhone').value = '';
-                document.getElementById('updateShopExtra').value = '';
-                return;
-            }
-            document.getElementById('updateShopImg').value = state.data.shopImages[shopName] || '';
-            document.getElementById('updateShopPhone').value = state.data.shopPhones[shopName] || '';
-            document.getElementById('updateShopExtra').value = state.data.shopExtraNames[shopName] || '';
+        async function adminUpdatePopularity() {
+            showLoading('正在掃描歷史紀錄計算人氣...');
+            const res = await apiCall('adminUpdatePopularity');
+            if (res) { showAlert(res); silentReload(); }
         }
 
         function adminCloseAndArchive() {
@@ -1648,7 +1614,53 @@
             });
         }
 
-        // --- Lightbox 邏輯 (使用原生卷軸及百分比縮放) ---
+        // --- QR Code 與分享連結邏輯 ---
+        function openQrModal(event) {
+            // 防止點擊按鈕時觸發 details 的開合
+            if(event) {
+                event.preventDefault(); 
+                event.stopPropagation();
+            }
+
+            // 產生專屬網址
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = `${baseUrl}?guest=1`;
+            document.getElementById('shareUrlInput').value = shareUrl;
+
+            // 使用 QRious 在本地端 Canvas 上繪製條碼，絕對不破圖
+            new QRious({
+                element: document.getElementById('qrCodeCanvas'),
+                value: shareUrl,
+                size: 250,
+                background: 'white',
+                foreground: '#0f172a', // slate-900 顏色
+                level: 'H'
+            });
+
+            const modal = document.getElementById('qrModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeQrModal() {
+            const modal = document.getElementById('qrModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function copyShareUrl() {
+            const input = document.getElementById('shareUrlInput');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showAlert('已經成功複製專屬報到連結！');
+        }
+
+        // --- 圖片預覽 Lightbox ---
         let currentImgWidth = 100;
         
         function zoomImg(delta) {
@@ -1664,7 +1676,6 @@
 
         function openLightbox(url) {
             currentImgWidth = window.innerWidth > 768 ? 100 : 120;
-            
             const lightbox = document.getElementById('lightbox');
             const img = document.getElementById('lightbox-img');
             
