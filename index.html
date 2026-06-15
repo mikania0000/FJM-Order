@@ -42,22 +42,18 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
 
-        /* 列印用隱藏樣式 (隱藏畫面上所有非表格元素) */
         @media print {
             body * { visibility: hidden; }
             #printArea, #printArea * { visibility: visible; }
             #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-            /* 隱藏原本會干擾的按鈕和邊界 */
             #mainApp, #lightbox, #alertBox, #confirmBox, #itemModal, nav, header { display: none !important; }
         }
     </style>
 </head>
 <body class="text-slate-800 antialiased overflow-hidden flex flex-col h-screen">
 
-    <!-- 用來存放 PDF 列印內容的隱藏容器 -->
     <div id="printArea" class="hidden absolute top-0 left-0 w-full h-auto bg-white p-8"></div>
 
-    <!-- 提示框 -->
     <div id="alertBox" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
@@ -73,7 +69,6 @@
         </div>
     </div>
 
-    <!-- 確認框 -->
     <div id="confirmBox" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center gap-3 mb-4">
@@ -90,7 +85,6 @@
         </div>
     </div>
 
-    <!-- 專屬連結 QR Code 彈窗 -->
     <div id="qrModal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 transform scale-95 transition-transform duration-300 text-center flex flex-col items-center">
             <div class="w-16 h-16 rounded-full theme-light theme-text flex items-center justify-center mb-4">
@@ -100,7 +94,6 @@
             <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
             
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 w-full flex justify-center">
-                <!-- 換成 canvas 讓 QRious 繪製 -->
                 <canvas id="qrCodeCanvas"></canvas>
             </div>
             
@@ -123,7 +116,6 @@
         <h2 id="loadingText" class="text-2xl font-bold theme-text tracking-wide">皮客覓準備中...</h2>
     </div>
 
-    <!-- 菜單預覽 Lightbox -->
     <div id="lightbox" class="fixed inset-0 z-[60] bg-slate-900 hidden flex flex-col">
         <div class="flex justify-between items-center p-4 text-white absolute top-0 w-full z-10 bg-gradient-to-b from-slate-900/90 to-transparent">
             <span class="text-lg font-bold opacity-90 drop-shadow-md flex items-center gap-2"><i data-lucide="mouse-pointer-2" class="w-6 h-6"></i>滑動捲軸查看菜單</span>
@@ -141,7 +133,6 @@
         </div>
     </div>
 
-    <!-- 登入頁面 -->
     <div id="loginPage" class="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto transition-transform duration-500">
         <div class="w-full max-w-md my-auto py-2">
             <div class="flex flex-col items-center mb-4">
@@ -160,7 +151,6 @@
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm p-4 border border-slate-100 relative overflow-hidden">
-                <!-- 免登入模式標籤 (預設隱藏) -->
                 <div id="guestModeBadge" class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl hidden shadow-sm">團購快速報到</div>
                 
                 <div class="space-y-3">
@@ -184,7 +174,6 @@
         </div>
     </div>
 
-    <!-- 主應用程式 -->
     <div id="mainApp" class="hidden flex-1 flex flex-col h-full bg-slate-50 relative">
         <header class="bg-white px-5 py-4 shadow-sm z-20 flex justify-between items-center sticky top-0">
             <div class="flex items-center gap-3">
@@ -200,7 +189,6 @@
             </div>
         </header>
         
-        <!-- 打氣問候語區塊 -->
         <div class="bg-white px-5 py-3 border-b border-slate-100 flex items-center gap-2 z-10 shadow-sm">
             <i data-lucide="sun" class="w-7 h-7 text-amber-500"></i>
             <p class="text-lg font-bold text-slate-600">探險家，今天想尋覓什麼美味呢？</p>
@@ -208,7 +196,6 @@
 
         <main id="mainContent" class="flex-1 overflow-y-auto no-scrollbar pb-safe w-full max-w-3xl mx-auto"></main>
 
-        <!-- 批次儲存專用浮動按鈕 (預設隱藏) -->
         <div id="batchSaveBar" class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-full max-w-3xl left-1/2 -translate-x-1/2 p-4 z-40 hidden transition-all transform translate-y-full opacity-0">
             <div class="bg-slate-800 rounded-2xl p-4 flex justify-between items-center shadow-2xl border-t border-slate-700 gap-2">
                 <div class="text-white flex items-center gap-3">
@@ -246,7 +233,6 @@
         </nav>
     </div>
 
-    <!-- 點餐彈窗 (加入手機版縮放與樣式優化) -->
     <div id="itemModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity flex flex-col justify-end">
         <div class="bg-white w-full max-w-3xl mx-auto rounded-t-3xl shadow-2xl p-4 sm:p-6 transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
             <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:mb-5 shrink-0"></div>
@@ -289,13 +275,11 @@
 
         lucide.createIcons();
 
-        // 偵測網址參數，看是否為分享的團購連結 (?guest=1)
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const isGuestLogin = urlParams.get('guest') === '1';
 
             if (isGuestLogin) {
-                // 啟動免登入介面
                 state.isGuestMode = true;
                 document.getElementById('usernameGroup').classList.add('hidden');
                 document.getElementById('passwordGroup').classList.add('hidden');
@@ -307,14 +291,12 @@
                 
                 document.getElementById('loginPage').classList.remove('-translate-y-full');
             } else {
-                // 正常登入邏輯
                 const savedToken = localStorage.getItem('pickmeal_token');
                 const savedUser = localStorage.getItem('pickmeal_user');
                 if (savedToken && savedUser) {
                     state.token = savedToken;
                     state.user = JSON.parse(savedUser);
                     
-                    // 設定下方導航列文字
                     const isGuestUser = state.user.isGuest || state.user.role !== '管理';
                     document.getElementById('profileTabText').textContent = isGuestUser ? '我的紀錄' : '指揮所';
                     document.getElementById('profileIcon').setAttribute('data-lucide', isGuestUser ? 'file-text' : 'user');
@@ -426,7 +408,6 @@
                 localStorage.setItem('pickmeal_token', res.token);
                 localStorage.setItem('pickmeal_user', JSON.stringify(res.user));
                 
-                // 設定下方導航列文字
                 const isGuest = state.user.isGuest || state.user.role !== '管理';
                 document.getElementById('profileTabText').textContent = isGuest ? '我的紀錄' : '指揮所';
                 document.getElementById('profileIcon').setAttribute('data-lucide', isGuest ? 'file-text' : 'user');
@@ -469,7 +450,6 @@
             document.getElementById('loginPage').classList.add('-translate-y-full');
             document.getElementById('mainApp').classList.remove('hidden');
             switchTab('menu');
-            lucide.createIcons();
         }
 
         function switchTab(tabId) {
@@ -541,7 +521,7 @@
             if (imgUrl || phoneBtnText) {
                 html += `<div class="flex gap-4 mt-2">`;
                 if(imgUrl) {
-                    const isImg = imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null || imgUrl.includes('drive.google') || imgUrl.includes('imgur');
+                    const isImg = imgUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null || imgUrl.includes('drive.google') || imgUrl.includes('imgur');
                     const clickAction = isImg ? `openLightbox('${imgUrl}')` : `window.open('${imgUrl}', '_blank')`;
                     const iconName = isImg ? 'image' : 'external-link';
                     
@@ -721,7 +701,6 @@
                     const optString = String(itemData[key]);
                     const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
                     
-                    // 防呆：說明文字不顯示選項，直接呈現
                     if (key === '說明' || key === '備註' || key === '描述') {
                         optionsHtml += `
                         <div class="mb-4 sm:mb-6 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
@@ -743,10 +722,13 @@
                         
                         options.forEach(opt => {
                             let extra = 0; let displayName = opt;
+                            // 完美修正：安全解析加價與括號，避免殘留空括號 ()
                             const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
                             if (priceMatch) {
                                 extra = parseInt(priceMatch[1]);
-                                displayName = opt.replace(priceMatch[0], '').trim() + ` (+$${extra})`;
+                                // 去除匹配到的金額字串，再清掉包含空白的括號
+                                let cleanName = opt.replace(priceMatch[0], '').replace(/\(\s*\)/g, '').trim();
+                                displayName = cleanName + ` (+$${extra})`;
                             }
                             const valueData = `${displayName}|${extra}`;
                             optionsHtml += `<option value="${valueData}">${displayName}</option>`;
@@ -941,7 +923,6 @@
                     <button onclick="logout()" class="bg-white/20 hover:bg-white/30 backdrop-blur text-xl font-bold py-2.5 px-6 rounded-xl transition-colors">切換帳號</button>
                 </div>`;
 
-            // 【版面分流】非管理員顯示個人紀錄，管理員隱藏
             if (state.user.role !== '管理' || state.user.isGuest) {
                 html += `
                 <div>
@@ -1005,8 +986,6 @@
             if (res) { showAlert(res); loadInitialData(); }
         }
 
-        // --- 管理員：發餐與批次儲存 ---
-        
         async function fetchAdminData(viewType) {
             showLoading('讀取物資報告中...');
             const res = await apiCall('adminGetTodayData');
@@ -1020,7 +999,7 @@
         }
 
         function renderAdminDashboard(container, summaryByUser) {
-            state.pendingUpdates = {}; // 進入畫面時清空暫存
+            state.pendingUpdates = {}; 
             hideBatchSaveBar();
             
             let contentHtml = '';
@@ -1093,7 +1072,6 @@
             lucide.createIcons();
         }
 
-        // 瞬間切換畫面狀態並記錄
         function queueStatusUpdate(orderIds, type, status, btnElement, userName) {
             const ids = orderIds.split(',');
             ids.forEach(id => {
@@ -1101,7 +1079,6 @@
                 state.pendingUpdates[id][type] = status;
             });
 
-            // 秒切換畫面按鈕樣式
             const isDone = (status === '已繳費' || status === '已取餐');
             const colorClass = type === 'pay' ? 'emerald' : 'blue';
             const iconName = type === 'pay' ? 'dollar-sign' : 'coffee';
@@ -1111,7 +1088,6 @@
             btnElement.className = `flex-1 py-4 rounded-xl text-xl font-bold transition-all flex items-center justify-center gap-2 ${isDone ? `bg-${colorClass}-100 text-${colorClass}-700 border border-${colorClass}-200` : 'bg-white border-2 border-slate-200 text-slate-600 active:bg-slate-50 shadow-sm'}`;
             btnElement.innerHTML = `<i data-lucide="${iconName}" class="w-7 h-7"></i> <span>${isDone ? textDone : textNotDone}</span>`;
             
-            // 由於改了 HTML 結構，需要重新 onclick 綁定反向狀態
             const nextStatus = isDone ? (type==='pay'?'未繳費':'未取餐') : (type==='pay'?'已繳費':'已取餐');
             btnElement.setAttribute('onclick', `queueStatusUpdate('${orderIds}', '${type}', '${nextStatus}', this, '${userName}')`);
 
@@ -1124,27 +1100,23 @@
             const isDeleting = state.pendingUpdates[orderId] && state.pendingUpdates[orderId].delete;
 
             if (isDeleting) {
-                // 再次點擊 -> 撤銷標記刪除，恢復原狀
                 delete state.pendingUpdates[orderId].delete;
                 if (Object.keys(state.pendingUpdates[orderId]).length === 0) {
                     delete state.pendingUpdates[orderId];
                 }
                 
-                // 恢復 UI 顏色與圖示
                 const container = btnElement.closest('.order-item-container');
                 container.classList.remove('opacity-50', 'bg-red-50');
                 btnElement.innerHTML = '<i data-lucide="trash-2" class="w-5 h-5"></i>';
                 btnElement.classList.remove('text-red-500', 'bg-red-100', 'border-red-200');
                 btnElement.classList.add('text-slate-400', 'bg-white', 'border-slate-200');
             } else {
-                // 首次點擊 -> 標記為待刪除
                 if (!state.pendingUpdates[orderId]) state.pendingUpdates[orderId] = {};
                 state.pendingUpdates[orderId].delete = true;
 
-                // 更新 UI 為淡化及紅色狀態
                 const container = btnElement.closest('.order-item-container');
                 container.classList.add('opacity-50', 'bg-red-50');
-                btnElement.innerHTML = '<i data-lucide="rotate-ccw" class="w-5 h-5"></i>'; // 換成復原圖示
+                btnElement.innerHTML = '<i data-lucide="rotate-ccw" class="w-5 h-5"></i>'; 
                 btnElement.classList.add('text-red-500', 'bg-red-100', 'border-red-200');
                 btnElement.classList.remove('text-slate-400', 'bg-white', 'border-slate-200');
             }
@@ -1196,7 +1168,6 @@
         function cancelBatchUpdates() {
             state.pendingUpdates = {};
             hideBatchSaveBar();
-            // 從快取瞬間重繪核銷檯，恢復所有原始 UI 狀態
             if (state.adminDataCache) {
                 renderAdminDashboard(document.getElementById('mainContent'), state.adminDataCache.summaryByUser);
             }
@@ -1205,17 +1176,15 @@
         async function commitBatchUpdates() {
             if (Object.keys(state.pendingUpdates).length === 0) return;
             
-            showLoading('正在批次上傳所有變更...');
+            showLoading('正在批次儲存變更...');
             const res = await apiCall('adminBatchUpdateStatus', { updates: state.pendingUpdates });
             if (res) {
                 showAlert(res, '儲存成功');
-                fetchAdminData('dashboard'); // 重新抓取乾淨資料
+                fetchAdminData('dashboard'); 
             } else {
                 hideLoading();
             }
         }
-
-        // --- 管理員：實戰訂購清單 ---
 
         function renderAdminOrderList(container, summaryByShop) {
             let contentHtml = '';
@@ -1285,16 +1254,12 @@
             lucide.createIcons();
         }
 
-        // --- 管理員：PDF 匯出邏輯 ---
-
         function exportPdf(type) {
             const printArea = document.getElementById('printArea');
             let html = '';
 
             if (type === 'dispatch') {
-                // 發餐核銷表 (A4 黑白排版)
                 html = `<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">皮客覓 發餐與核銷點名表</h1>`;
-                
                 state.adminDataCache.summaryByUser.forEach(user => {
                     html += `
                     <div style="border: 2px solid #000; margin-bottom: 20px; padding: 15px; page-break-inside: avoid;">
@@ -1328,9 +1293,7 @@
                 });
 
             } else if (type === 'order') {
-                // 實戰訂購清單 (向店家叫餐用)
                 html = `<h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">皮客覓 實戰訂購清單 (給店家)</h1>`;
-                
                 const shops = Object.keys(state.adminDataCache.summaryByShop);
                 shops.forEach(shop => {
                     const shopData = state.adminDataCache.summaryByShop[shop];
@@ -1360,7 +1323,6 @@
                                     <td style="text-align: right; padding: 10px 5px;">$${item.subtotal}</td>
                                 </tr>`;
                     }
-                    
                     html += `
                             </tbody>
                         </table>
@@ -1370,12 +1332,10 @@
                     </div>`;
                 });
             }
-
             printArea.innerHTML = html;
             window.print();
         }
 
-        // --- 背景刷新函式 (不切換Tab) ---
         async function silentReload() {
             showLoading('更新設定中...');
             const res = await apiCall('getInitialData');
@@ -1385,10 +1345,8 @@
             }
         }
 
-        // --- 管理員：系統設定 ---
         function renderAdminSettings() {
             let contentHtml = `
-            <!-- 第一項：營運開關 (可摺疊，預設展開) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden" open>
                 <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white transition-colors border-l-4 border-[#006241]">
                     營運開關
@@ -1425,10 +1383,9 @@
                 </div>
             </details>
 
-            <!-- 第二項：更新現有店家資訊 (可摺疊) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
                 <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-slate-50 transition-colors border-l-4 border-blue-500">
-                    更新現有店家圖片與電話
+                    更新店家圖片與電話
                     <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
                 </summary>
                 <div class="px-6 pb-6 pt-2 border-t border-slate-100">
@@ -1445,7 +1402,6 @@
                 </div>
             </details>
 
-            <!-- 第三項：Excel 覆寫更新菜單 (可摺疊) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-emerald-200 mb-6 overflow-hidden">
                 <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-emerald-50 transition-colors border-l-4 border-emerald-500">
                     覆寫更新現有店家菜單 (Excel貼上)
@@ -1466,7 +1422,6 @@
                 </div>
             </details>
 
-            <!-- 第四項：新增全新店家 (可摺疊) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-amber-200 mb-6 overflow-hidden">
                 <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-amber-50 transition-colors border-l-4 border-amber-500">
                     新增全新店家 (從 Excel 建立)
@@ -1486,7 +1441,6 @@
                 </div>
             </details>
 
-            <!-- 第五項：人氣排行榜引擎 (可摺疊) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-purple-200 mb-6 overflow-hidden">
                 <summary class="p-6 font-black text-2xl text-slate-800 cursor-pointer flex justify-between items-center bg-white hover:bg-purple-50 transition-colors border-l-4 border-purple-500">
                     人氣排行榜計算引擎
@@ -1500,7 +1454,6 @@
                 </div>
             </details>
 
-            <!-- 最後一項：日落打烊 -->
             <button onclick="adminCloseAndArchive()" class="w-full bg-red-50 text-red-600 border-2 border-red-200 text-2xl font-bold py-5 rounded-2xl flex items-center justify-center gap-2 hover:bg-red-100 active:scale-95 transition-all mt-8 shadow-sm">
                 <i data-lucide="archive" class="w-8 h-8"></i> 執行日落打烊與封存
             </button>`;
@@ -1531,11 +1484,7 @@
             const res = await apiCall('adminUpdateSystemSettings', data);
             if (res) { 
                 showAlert(res); 
-                const newData = await apiCall('getInitialData');
-                if (newData) {
-                    processInitialData(newData);
-                    hideLoading();
-                }
+                silentReload();
             }
         }
 
@@ -1551,11 +1500,7 @@
             const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
             if (res) { 
                 showAlert(res); 
-                const newData = await apiCall('getInitialData');
-                if (newData) {
-                    processInitialData(newData);
-                    hideLoading();
-                }
+                silentReload();
             }
         }
 
@@ -1585,12 +1530,8 @@
             const res = await apiCall('adminOverwriteShopMenu', { shop, menuData });
             if (res) {
                 showAlert(res);
-                const newData = await apiCall('getInitialData');
-                if (newData) {
-                    processInitialData(newData);
-                    document.getElementById('overwriteShopMenuData').value = ''; // 清空輸入框
-                    hideLoading();
-                }
+                document.getElementById('overwriteShopMenuData').value = '';
+                silentReload();
             }
         }
 
@@ -1611,7 +1552,7 @@
             const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone, shopExtra });
             if (res) {
                 showAlert(res);
-                loadInitialData(); // 新增店家需要刷新整個選單列表
+                loadInitialData(); 
             }
         }
 
@@ -1620,11 +1561,7 @@
             const res = await apiCall('adminUpdatePopularity');
             if (res) { 
                 showAlert(res); 
-                const newData = await apiCall('getInitialData');
-                if (newData) {
-                    processInitialData(newData);
-                    hideLoading();
-                }
+                silentReload();
             }
         }
 
@@ -1636,7 +1573,6 @@
             });
         }
 
-        // --- QR Code 與分享連結邏輯 ---
         function openQrModal(event) {
             if(event) {
                 event.preventDefault(); 
@@ -1679,7 +1615,6 @@
             showAlert('已經成功複製專屬報到連結！');
         }
 
-        // --- 圖片預覽 Lightbox ---
         let currentImgWidth = 100;
         
         function zoomImg(delta) {
