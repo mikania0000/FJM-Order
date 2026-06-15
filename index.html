@@ -6,6 +6,7 @@
     <title>皮客覓 PickMeal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f4f7f6; -webkit-tap-highlight-color: transparent; }
@@ -120,14 +121,14 @@
                 <i data-lucide="qr-code" class="w-8 h-8 text-emerald-600"></i>
             </div>
             <h3 class="text-2xl font-black text-slate-800 mb-2">專屬團購報到條碼</h3>
-            <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
-            
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 w-full flex justify-center min-h-[220px]">
-                <!-- 改用穩定度更高的 Google Chart API 產生 QR Code -->
-                <img id="qrCodeImg" src="" alt="產生中..." class="w-48 h-48 object-contain">
-            </div>
-            
-            <div class="w-full bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200 mb-6">
+        <p class="text-slate-500 mb-6 font-medium">探險家只要掃描此條碼或點擊連結，<br>輸入暱稱即可馬上點餐！</p>
+        
+        <div class="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 w-full flex justify-center items-center min-h-[220px]">
+            <!-- 改用 Canvas 元素讓 JS 直接在本地端畫出 QR Code -->
+            <canvas id="qrCodeCanvas" class="w-48 h-48"></canvas>
+        </div>
+        
+        <div class="w-full bg-slate-50 rounded-xl p-3 flex items-center gap-2 border border-slate-200 mb-6">
                 <input type="text" id="shareLinkInput" readonly class="flex-1 bg-transparent border-none focus:ring-0 text-slate-600 font-mono text-sm truncate" value="">
                 <button onclick="copyShareLink()" class="p-2 bg-white rounded-lg shadow-sm border border-slate-200 hover:bg-slate-100 active:scale-95 transition-all text-slate-600">
                     <i data-lucide="copy" class="w-5 h-5"></i>
@@ -286,7 +287,7 @@
 
     <script>
         // *** 替換成您的 Google Apps Script 部署網址 ***
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZomnJRCpnTT6IJXXuCBdTlaqDhPITyt-2ACh8JZBz42rctAaAfYdpwNYgBtvzHXtNCQ/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQ9q6gTf6h0r_D-7-N-b6Z7_0B3m2F7y2M6wZ6_qZ6/exec'; 
         
         const state = {
             user: null, token: null,
@@ -1480,8 +1481,14 @@
             
             document.getElementById('shareLinkInput').value = shareUrl;
             
-            // 使用穩定度高的 Google Chart API (尺寸設為 300x300 確保清晰)
-            document.getElementById('qrCodeImg').src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(shareUrl)}&choe=UTF-8`;
+            // 使用 QRious 在本地端直接繪製 QR Code (完全不需要依賴外部圖片 API，保證不破圖)
+            new QRious({
+                element: document.getElementById('qrCodeCanvas'),
+                value: shareUrl,
+                size: 250,
+                level: 'H',
+                foreground: '#0f172a' // slate-900 顏色
+            });
             
             const modal = document.getElementById('qrModal');
             modal.classList.remove('hidden');
