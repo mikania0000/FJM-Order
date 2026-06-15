@@ -456,6 +456,15 @@
             }
         }
 
+        // 專為管理員設計的背景更新，不跳轉畫面
+        async function silentReload() {
+            const res = await apiCall('getInitialData');
+            if (res) {
+                state.system = res.systemStatus;
+                state.data = res;
+            }
+        }
+
         function processInitialData(data) {
             state.system = data.systemStatus;
             state.data = data;
@@ -743,20 +752,20 @@
                         </div>`;
                     }
                 } else {
-                    const optString = String(itemData[key]);
-                    const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
-                    
-                    if (options.length > 0) {
-                        state.tempItem.selectedSpec[key] = '';
+                    if (key === '說明' || key === '備註' || key === '描述') {
+                        // 說明欄位直接顯示文字，不渲染下拉選單
                         optionsHtml += `
                         <div class="mb-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                            <h4 class="text-lg font-bold text-slate-600 mb-3 flex justify-between items-center">
-                                <span>${key}</span>
-                                <span class="text-base font-normal text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">必選</span>
-                            </h4>
-                            <select onchange="updateTempItemOption('${key}', this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-4 text-xl font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#006241] appearance-none cursor-pointer">
-                                <option value="" disabled selected>-- 請選擇 --</option>`;
+                            <h4 class="text-lg font-bold text-slate-600 mb-2">${key}</h4>
+                            <p class="text-xl text-slate-700 leading-relaxed">${itemData[key]}</p>
+                        </div>`;
+                    } else {
+                        const optString = String(itemData[key]);
+                        const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
                         
+                        if (options.length > 0) {
+                            state.tempItem.selectedSpec[key] = '';
+                            optionsHtml += `
                         options.forEach(opt => {
                             let extra = 0; let displayName = opt;
                             const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
@@ -1023,6 +1032,17 @@
             if (res) { showAlert(res); loadInitialData(); }
         }
 
+        function adminDeleteOrder(id) {
+            showConfirm('確定要強制刪除這筆訂單嗎？刪除後將無法復原。', async () => {
+                showLoading('正在刪除中...');
+                const res = await apiCall('deleteOrder', { orderId: id });
+                if (res) { 
+                    await silentReload(); // 背景刷新資料
+                    fetchAdminData('dashboard'); // 重新繪製核銷檯
+                }
+            });
+        }
+
         async function fetchAdminData(viewType) {
             // 切換視圖時清空未儲存的狀態
             state.pendingUpdates = {};
@@ -1065,13 +1085,18 @@
 
                     user.orders.forEach(order => {
                         contentHtml += `
-                            <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl">
-                                <div class="flex-1 min-w-0 pr-2">
+                            <div class="flex justify-between items-start p-4 bg-slate-50 rounded-2xl relative">
+                                <div class="flex-1 min-w-0 pr-6">
                                     <span class="text-sm font-bold text-white bg-slate-800 px-2 py-1 rounded mr-2 align-middle inline-block mb-1">${order['店家']}</span>
                                     <span class="font-bold text-slate-700 text-xl align-middle break-words inline-block">${order['品項']} x${order['數量']}</span>
                                     ${order['規格']||order['訂購內容'] ? `<p class="text-lg text-slate-500 mt-1 break-words">${order['規格']||order['訂購內容']}</p>` : ''}
                                 </div>
-                                <span class="font-bold text-slate-700 text-2xl shrink-0 ml-2">$${order['小計']}</span>
+                                <div class="flex flex-col items-end gap-3 shrink-0">
+                                    <span class="font-bold text-slate-700 text-2xl leading-none">$${order['小計']}</span>
+                                    <button onclick="adminDeleteOrder('${order['訂單編號']}')" class="text-slate-400 hover:text-red-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="刪除此訂單">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
                             </div>`;
                     });
 
@@ -1353,41 +1378,46 @@
 
         function renderAdminSettings() {
             let contentHtml = `
-            <!-- 第一項：營運開關與團購網址產生器 (預設不使用摺疊，因為最常用) -->
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
-                <div class="flex justify-between items-center mb-5 border-l-4 border-[#006241] pl-3">
-                    <h3 class="text-2xl font-black text-slate-800">營運開關</h3>
-                    <button onclick="openQrModal()" class="bg-emerald-100 text-emerald-700 font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-200 active:scale-95 transition-all text-sm">
-                        <i data-lucide="share-2" class="w-5 h-5"></i> 產生免登入報到連結
-                    </button>
-                </div>
-                
-                <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
-                    <span class="text-xl font-bold text-slate-700">開放點餐</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="setIsOpen" class="sr-only peer" ${state.system.isOpen ? 'checked' : ''}>
-                        <div class="w-16 h-8 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[2rem] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-[#006241]"></div>
-                    </label>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-xl font-bold text-slate-600 mb-4">今日開放店家 (請打勾)</label>
-                    <div class="flex flex-wrap gap-3">
-                        ${state.data.allShops.map(shop => `
-                            <label class="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                                <input type="checkbox" class="shop-checkbox w-7 h-7 text-[#006241] rounded focus:ring-[#006241]" value="${shop}" ${state.system.openedShops.includes(shop) ? 'checked' : ''}>
-                                <span class="text-xl font-bold text-slate-700">${shop}</span>
-                            </label>
-                        `).join('')}
+            <!-- 第一項：營運開關與團購網址產生器 -->
+            <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden" open>
+                <summary class="p-6 text-2xl font-black text-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors">
+                    <span class="border-l-4 border-[#006241] pl-3">營運開關</span>
+                    <i data-lucide="chevron-down" class="w-8 h-8 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div class="p-6 pt-0 border-t border-slate-100">
+                    <div class="flex justify-end mb-4 mt-2">
+                        <button onclick="openQrModal()" class="bg-emerald-100 text-emerald-700 font-bold px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-200 active:scale-95 transition-all text-sm">
+                            <i data-lucide="share-2" class="w-5 h-5"></i> 產生免登入報到連結
+                        </button>
                     </div>
-                </div>
+                    
+                    <div class="flex items-center justify-between mb-6 bg-slate-50 p-5 rounded-xl border border-slate-100">
+                        <span class="text-xl font-bold text-slate-700">開放點餐</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="setIsOpen" class="sr-only peer" ${state.system.isOpen ? 'checked' : ''}>
+                            <div class="w-16 h-8 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[2rem] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-[#006241]"></div>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-xl font-bold text-slate-600 mb-4">今日開放店家 (請打勾)</label>
+                        <div class="flex flex-wrap gap-3">
+                            ${state.data.allShops.map(shop => `
+                                <label class="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" class="shop-checkbox w-7 h-7 text-[#006241] rounded focus:ring-[#006241]" value="${shop}" ${state.system.openedShops.includes(shop) ? 'checked' : ''}>
+                                    <span class="text-xl font-bold text-slate-700">${shop}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
 
-                <div class="mb-6">
-                    <label class="block text-xl font-bold text-slate-600 mb-3">點餐截止時間</label>
-                    <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-2xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    <div class="mb-6">
+                        <label class="block text-xl font-bold text-slate-600 mb-3">點餐截止時間</label>
+                        <input type="time" id="setDeadline" value="${state.system.deadline}" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-2xl font-bold focus:ring-2 focus:ring-[#006241] outline-none text-slate-700">
+                    </div>
+                    <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
                 </div>
-                <button onclick="saveSystemSettings()" class="w-full theme-green text-white text-2xl font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-900/30">儲存系統設定</button>
-            </div>
+            </details>
 
             <!-- 第二項：更新現有店家資訊 (使用摺疊收納) -->
             <details class="group bg-white rounded-3xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
@@ -1529,7 +1559,7 @@
                 if (res) {
                     showAlert(res);
                     document.getElementById('updateShopMenuData').value = ''; // 清空輸入框
-                    loadInitialData(); 
+                    await silentReload(); hideLoading(); 
                 }
             });
         }
@@ -1537,7 +1567,7 @@
         async function adminUpdatePopularity() {
             showLoading('正在掃描歷史紀錄計算人氣...');
             const res = await apiCall('adminUpdatePopularity');
-            if (res) { showAlert(res); loadInitialData(); }
+            if (res) { showAlert(res); await silentReload(); hideLoading(); }
         }
 
         async function addNewShop() {
@@ -1557,7 +1587,9 @@
             const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone, shopExtra });
             if (res) {
                 showAlert(res);
-                loadInitialData(); 
+                document.getElementById('newShopName').value = '';
+                document.getElementById('newShopMenuData').value = '';
+                await silentReload(); hideLoading(); 
             }
         }
 
@@ -1572,7 +1604,7 @@
             };
             showLoading('更新設定中...');
             const res = await apiCall('adminUpdateSystemSettings', data);
-            if (res) { showAlert(res); loadInitialData(); }
+            if (res) { showAlert(res); await silentReload(); hideLoading(); }
         }
 
         async function updateShopInfo() {
@@ -1584,7 +1616,7 @@
             if (!shop) return showAlert('請選擇店家');
             showLoading('更新店家資料中...');
             const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
-            if (res) { showAlert(res); loadInitialData(); }
+            if (res) { showAlert(res); await silentReload(); hideLoading(); }
         }
 
         function loadShopDataForUpdate(shopName) {
