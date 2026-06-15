@@ -222,7 +222,6 @@
                     <button onclick="cancelBatchUpdates()" class="bg-slate-600 text-white font-bold px-4 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-500 active:scale-95 transition-transform shadow-lg text-sm sm:text-base">
                         <i data-lucide="x" class="w-5 h-5 hidden sm:block"></i> 取消
                     </button>
-                    <!-- 【修改】將「一鍵上傳」改為「儲存變更」，圖示改為打勾 -->
                     <button onclick="commitBatchUpdates()" class="bg-emerald-500 text-white font-bold px-4 sm:px-6 py-3 rounded-xl flex items-center gap-1 sm:gap-2 hover:bg-emerald-600 active:scale-95 transition-transform shadow-lg text-sm sm:text-base">
                         <i data-lucide="check-circle" class="w-5 h-5 hidden sm:block"></i> 儲存變更
                     </button>
@@ -284,9 +283,8 @@
             data: { allShops: [], menuData: {}, shopImages: {}, shopPhones: {}, shopExtraNames: {}, userOrders: [], popularityCache: {} },
             cart: [], currentTab: 'menu', activeShop: '',
             tempItem: null, adminProxyName: '', sortByPop: false,
-            // 批次儲存專用暫存區塊
             pendingUpdates: {},
-            adminDataCache: null // 暫存目前的發餐資料以供操作
+            adminDataCache: null
         };
 
         lucide.createIcons();
@@ -441,7 +439,6 @@
         function logout() {
             localStorage.removeItem('pickmeal_token');
             localStorage.removeItem('pickmeal_user');
-            // 移除網址參數並重新整理，恢復成正常的登入畫面
             window.location.href = window.location.pathname;
         }
 
@@ -454,21 +451,11 @@
             }
         }
 
-        async function silentReload() {
-            showLoading('更新設定中...');
-            const res = await apiCall('getInitialData');
-            if(res) {
-                processInitialData(res);
-                hideLoading();
-            }
-        }
-
         function processInitialData(data) {
             state.system = data.systemStatus;
             state.data = data;
             
-            // 訪客稱呼
-            const roleName = state.user.isGuest ? '探險家(免登)' : (state.user.role === '管理' ? '指揮官' : '探險家');
+            const roleName = state.user.isGuest ? '探險家(團購)' : (state.user.role === '管理' ? '指揮官' : '探險家');
             document.getElementById('userGreeting').textContent = `${roleName} ${state.user.name}`;
             document.getElementById('appDeadline').textContent = state.system.deadline ? `打烊時間: ${state.system.deadline}` : '隨時可發射洋蔥號';
             
@@ -554,7 +541,6 @@
             if (imgUrl || phoneBtnText) {
                 html += `<div class="flex gap-4 mt-2">`;
                 if(imgUrl) {
-                    // 判斷是圖片還是外部連結
                     const isImg = imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null || imgUrl.includes('drive.google') || imgUrl.includes('imgur');
                     const clickAction = isImg ? `openLightbox('${imgUrl}')` : `window.open('${imgUrl}', '_blank')`;
                     const iconName = isImg ? 'image' : 'external-link';
@@ -670,7 +656,7 @@
             
             html += `</div>`;
             container.innerHTML = html;
-            lucide.createIcons(); // 確保重繪圖示
+            lucide.createIcons();
         }
 
         function renderMenuItemRow(pItem) {
@@ -735,6 +721,7 @@
                     const optString = String(itemData[key]);
                     const options = optString.split(/[\/,]/).map(s => s.trim()).filter(s => s);
                     
+                    // 防呆：說明文字不顯示選項，直接呈現
                     if (key === '說明' || key === '備註' || key === '描述') {
                         optionsHtml += `
                         <div class="mb-4 sm:mb-6 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
@@ -1025,7 +1012,7 @@
             const res = await apiCall('adminGetTodayData');
             hideLoading();
             if (res) {
-                state.adminDataCache = res; // 暫存資料
+                state.adminDataCache = res; 
                 const container = document.getElementById('mainContent');
                 if (viewType === 'dashboard') renderAdminDashboard(container, res.summaryByUser);
                 if (viewType === 'list') renderAdminOrderList(container, res.summaryByShop);
@@ -1385,13 +1372,20 @@
             }
 
             printArea.innerHTML = html;
-            
-            // 呼叫瀏覽器列印 (CSS 中已設定 @media print 隱藏其他元素)
             window.print();
         }
 
-        // --- 管理員：系統設定 ---
+        // --- 背景刷新函式 (不切換Tab) ---
+        async function silentReload() {
+            showLoading('更新設定中...');
+            const res = await apiCall('getInitialData');
+            if(res) {
+                processInitialData(res);
+                hideLoading();
+            }
+        }
 
+        // --- 管理員：系統設定 ---
         function renderAdminSettings() {
             let contentHtml = `
             <!-- 第一項：營運開關 (可摺疊，預設展開) -->
@@ -1532,10 +1526,17 @@
                 openedShops: openedShops,
                 deadline: document.getElementById('setDeadline').value
             };
-            // 使用靜默更新，停留在原畫面
-            silentReload(); 
+            
+            showLoading('更新設定中...');
             const res = await apiCall('adminUpdateSystemSettings', data);
-            if (res) { showAlert(res); }
+            if (res) { 
+                showAlert(res); 
+                const newData = await apiCall('getInitialData');
+                if (newData) {
+                    processInitialData(newData);
+                    hideLoading();
+                }
+            }
         }
 
         async function updateShopInfo() {
@@ -1545,9 +1546,17 @@
             const shopExtra = document.getElementById('updateShopExtra').value.trim();
             
             if (!shop) return showAlert('請選擇店家');
-            silentReload();
+            
+            showLoading('更新店家資料中...');
             const res = await apiCall('adminUpdateShopInfo', { shop, imageUrl, phone, shopExtra });
-            if (res) { showAlert(res); }
+            if (res) { 
+                showAlert(res); 
+                const newData = await apiCall('getInitialData');
+                if (newData) {
+                    processInitialData(newData);
+                    hideLoading();
+                }
+            }
         }
 
         function loadShopDataForUpdate(shopName) {
@@ -1576,7 +1585,12 @@
             const res = await apiCall('adminOverwriteShopMenu', { shop, menuData });
             if (res) {
                 showAlert(res);
-                loadInitialData(); 
+                const newData = await apiCall('getInitialData');
+                if (newData) {
+                    processInitialData(newData);
+                    document.getElementById('overwriteShopMenuData').value = ''; // 清空輸入框
+                    hideLoading();
+                }
             }
         }
 
@@ -1597,14 +1611,21 @@
             const res = await apiCall('adminAddShop', { shop, menuData, imageUrl, phone, shopExtra });
             if (res) {
                 showAlert(res);
-                loadInitialData(); 
+                loadInitialData(); // 新增店家需要刷新整個選單列表
             }
         }
 
         async function adminUpdatePopularity() {
             showLoading('正在掃描歷史紀錄計算人氣...');
             const res = await apiCall('adminUpdatePopularity');
-            if (res) { showAlert(res); silentReload(); }
+            if (res) { 
+                showAlert(res); 
+                const newData = await apiCall('getInitialData');
+                if (newData) {
+                    processInitialData(newData);
+                    hideLoading();
+                }
+            }
         }
 
         function adminCloseAndArchive() {
@@ -1617,24 +1638,21 @@
 
         // --- QR Code 與分享連結邏輯 ---
         function openQrModal(event) {
-            // 防止點擊按鈕時觸發 details 的開合
             if(event) {
                 event.preventDefault(); 
                 event.stopPropagation();
             }
 
-            // 產生專屬網址
             const baseUrl = window.location.href.split('?')[0];
             const shareUrl = `${baseUrl}?guest=1`;
             document.getElementById('shareUrlInput').value = shareUrl;
 
-            // 使用 QRious 在本地端 Canvas 上繪製條碼，絕對不破圖
             new QRious({
                 element: document.getElementById('qrCodeCanvas'),
                 value: shareUrl,
                 size: 250,
                 background: 'white',
-                foreground: '#0f172a', // slate-900 顏色
+                foreground: '#0f172a',
                 level: 'H'
             });
 
