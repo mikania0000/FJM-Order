@@ -44,8 +44,8 @@
 
         @media print {
             body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+            #printArea { display: block !important; visibility: visible; position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; }
+            #printArea * { visibility: visible; }
             #mainApp, #lightbox, #alertBox, #confirmBox, #itemModal, nav, header { display: none !important; }
         }
     </style>
@@ -722,11 +722,9 @@
                         
                         options.forEach(opt => {
                             let extra = 0; let displayName = opt;
-                            // 完美修正：安全解析加價與括號，避免殘留空括號 ()
                             const priceMatch = opt.match(/\+\s*\$?\s*(\d+)/); 
                             if (priceMatch) {
                                 extra = parseInt(priceMatch[1]);
-                                // 去除匹配到的金額字串，再清掉包含空白的括號
                                 let cleanName = opt.replace(priceMatch[0], '').replace(/\(\s*\)/g, '').trim();
                                 displayName = cleanName + ` (+$${extra})`;
                             }
@@ -1332,8 +1330,15 @@
                     </div>`;
                 });
             }
+            
             printArea.innerHTML = html;
-            window.print();
+            printArea.classList.remove('hidden'); // 列印前強制顯示
+            
+            // 給瀏覽器一點時間渲染
+            setTimeout(() => {
+                window.print();
+                printArea.classList.add('hidden'); // 列印後藏回來
+            }, 300);
         }
 
         async function silentReload() {
