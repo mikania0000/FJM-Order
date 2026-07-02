@@ -109,7 +109,7 @@
         </div>
     </div>
 
-    <!-- Edit Order Modal (🔥 新增：編輯訂單彈出視窗) -->
+    <!-- Edit Order Modal (編輯訂單/購物車項目彈出視窗) -->
     <div id="editOrderModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 transform scale-95 transition-transform duration-300">
             <div class="flex items-center justify-between mb-5">
@@ -117,7 +117,7 @@
                     <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                         <i data-lucide="edit-3" class="w-5 h-5 text-blue-600"></i>
                     </div> 
-                    修改訂單
+                    修改內容
                 </h3>
                 <button onclick="closeEditOrderModal()" class="p-2 text-slate-400 hover:bg-slate-100 rounded-full active:scale-90 transition-all"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
@@ -151,6 +151,8 @@
                     儲存變更
                 </button>
             </div>
+            <!-- 用來判斷是改購物車(cart)還是已送出的訂單(order) -->
+            <input type="hidden" id="editOrderMode" value="order">
             <input type="hidden" id="editOrderIdHidden">
         </div>
     </div>
@@ -705,9 +707,11 @@
             </div>`;
         }
 
-        // ---------- 編輯訂單的相關邏輯 ----------
-        function openEditOrderModal(orderId, shopName, itemName, spec, price, qty) {
+        // ---------- 編輯訂單/購物車項目的相關邏輯 ----------
+        // 新增參數 mode，預設為 'order'，若是從購物車呼叫則傳入 'cart'
+        function openEditOrderModal(orderId, shopName, itemName, spec, price, qty, mode = 'order') {
             document.getElementById('editOrderIdHidden').value = orderId;
+            document.getElementById('editOrderMode').value = mode;
             document.getElementById('editOrderShopName').innerHTML = `[${shopName}] ${itemName}`;
             document.getElementById('editOrderSpec').value = spec || '';
             document.getElementById('editOrderPrice').value = price || 0;
@@ -738,12 +742,29 @@
 
         async function submitEditOrder() {
             const orderId = document.getElementById('editOrderIdHidden').value;
+            const mode = document.getElementById('editOrderMode').value;
             const spec = document.getElementById('editOrderSpec').value.trim();
             const price = parseInt(document.getElementById('editOrderPrice').value) || 0;
             const qty = parseInt(document.getElementById('editOrderQty').value) || 1;
 
             if (price < 0 || qty < 1) return showAlert('單價不能小於 0，數量最少要 1 喔！');
             
+            if (mode === 'cart') {
+                const idx = parseInt(orderId);
+                if (!isNaN(idx) && state.cart[idx]) {
+                    state.cart[idx].spec = spec;
+                    state.cart[idx].price = price;
+                    state.cart[idx].quantity = qty;
+                    
+                    closeEditOrderModal();
+                    renderCartTab(document.getElementById('mainContent'));
+                    updateCartBadge();
+                    showAlert('購物車項目已更新！', '修改成功');
+                }
+                return;
+            }
+
+            // 修改已送出的訂單邏輯
             showLoading('正在為您修改訂單...');
             const res = await apiCall('editOrder', { orderId, spec, price, quantity: qty });
             if (res) {
@@ -963,12 +984,17 @@
             state.cart.forEach((item, idx) => {
                 const itemTotal = item.price * item.quantity;
                 total += itemTotal;
+                // 處理單引號，防止 JS 報錯
+                const safeSpec = (item.spec || '').replace(/'/g, "\\'");
                 html += `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex gap-4 animate-sprout" style="animation-delay: ${idx * 0.05}s">
                     <div class="flex-1">
                         <div class="flex justify-between items-start mb-2">
-                            <h4 class="font-bold text-slate-800 text-2xl">${item.name}</h4>
-                            <button onclick="state.cart.splice(${idx}, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent'));" class="text-red-400 p-2 hover:text-red-600 hover:bg-red-100 active:scale-90 bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-7 h-7"></i></button>
+                            <h4 class="font-bold text-slate-800 text-2xl pr-2 break-words flex-1">${item.name}</h4>
+                            <div class="flex gap-2 shrink-0">
+                                <button onclick="openEditOrderModal('${idx}', '${item.shop}', '${item.name}', '${safeSpec}', ${item.price}, ${item.quantity}, 'cart')" class="text-blue-400 p-2 hover:text-blue-600 hover:bg-blue-100 active:scale-90 bg-blue-50 rounded-full transition-colors"><i data-lucide="edit-3" class="w-6 h-6"></i></button>
+                                <button onclick="state.cart.splice(${idx}, 1); updateCartBadge(); renderCartTab(document.getElementById('mainContent'));" class="text-red-400 p-2 hover:text-red-600 hover:bg-red-100 active:scale-90 bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-6 h-6"></i></button>
+                            </div>
                         </div>
                         <p class="text-lg text-slate-500 mb-3">${item.shop} ${item.spec ? `· ${item.spec}` : ''}</p>
                         ${item.name_override ? `<p class="text-base bg-amber-100 text-amber-800 inline-block px-3 py-1 rounded font-bold mb-3">代點: ${item.name_override}</p>` : ''}
@@ -1036,7 +1062,9 @@
                     ${state.data.userOrders.length === 0 ? 
                         `<div class="bg-white p-6 rounded-3xl border border-slate-100 text-center text-slate-400 text-xl shadow-sm">今天還沒有培育任何餐點喔！</div>` : 
                         `<div class="space-y-4">
-                            ${state.data.userOrders.map(order => `
+                            ${state.data.userOrders.map(order => {
+                                const safeSpec = (order['規格']||order['訂購內容']||'').replace(/'/g, "\\'");
+                                return `
                                 <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
                                     ${order['繳費情形'] === '已繳費' ? `<div class="absolute top-0 right-0 w-2.5 h-full bg-emerald-400"></div>` : `<div class="absolute top-0 right-0 w-2.5 h-full bg-amber-400"></div>`}
                                     <h4 class="font-bold text-slate-800 mb-2 text-[22px] pr-20">${order['品項']} <span class="text-lg text-slate-500 font-normal">x${order['數量']}</span></h4>
@@ -1053,11 +1081,11 @@
                                     
                                     ${(order['繳費情形'] !== '已繳費' && order['取餐情形'] !== '已取餐') ? 
                                         `<div class="absolute top-3 right-4 flex gap-1">
-                                            <button onclick="openEditOrderModal('${order['訂單編號']}', '${order['店家']}', '${order['品項']}', '${order['規格']||order['訂購內容']||''}', ${order['單價']}, ${order['數量']})" class="text-slate-300 hover:text-blue-500 hover:bg-blue-50 bg-slate-50 p-2.5 rounded-full transition-colors shadow-sm" title="修改訂單"><i data-lucide="edit-3" class="w-6 h-6"></i></button>
+                                            <button onclick="openEditOrderModal('${order['訂單編號']}', '${order['店家']}', '${order['品項']}', '${safeSpec}', ${order['單價']}, ${order['數量']})" class="text-slate-300 hover:text-blue-500 hover:bg-blue-50 bg-slate-50 p-2.5 rounded-full transition-colors shadow-sm" title="修改訂單"><i data-lucide="edit-3" class="w-6 h-6"></i></button>
                                             <button onclick="showConfirm('確定要取消這筆物資派遣嗎？', () => deleteOrder('${order['訂單編號']}'))" class="text-slate-300 hover:text-red-500 hover:bg-red-50 bg-slate-50 p-2.5 rounded-full transition-colors shadow-sm" title="刪除訂單"><i data-lucide="x" class="w-6 h-6"></i></button>
                                         </div>` : ''}
                                 </div>
-                            `).join('')}
+                            `}).join('')}
                         </div>`
                     }
                 </div>`;
@@ -1066,23 +1094,33 @@
             if (state.user.role === '管理' && !state.user.isGuest) {
                 html += `
                 <div class="mt-4">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-6">
-                        <h3 class="text-3xl font-black text-slate-800 flex items-center gap-2"><i data-lucide="command" class="w-8 h-8 theme-text"></i> 指揮官控制台</h3>
-                        <button onclick="openQrModal(event)" class="text-sm font-bold text-[#006241] bg-[#e8f3ee] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-[#d1e8de] transition-colors"><i data-lucide="share-2" class="w-4 h-4"></i> 產生免登入報到連結</button>
+                    <div class="flex flex-col gap-4 mb-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-3xl font-black text-slate-800 flex items-center gap-2"><i data-lucide="command" class="w-8 h-8 theme-text"></i> 指揮官控制台</h3>
+                        </div>
+                        <button onclick="openQrModal(event)" class="text-[20px] font-bold text-[#006241] bg-[#e8f3ee] px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-[#d1e8de] transition-colors shadow-sm w-full">
+                            <i data-lucide="qr-code" class="w-6 h-6"></i> 產生免登入報到連結
+                        </button>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all">
-                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-8 h-8 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-xl">發餐與核銷檯</span>
+                    <!-- 3個按鈕排成一列 -->
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <!-- 1. 電話訂購 -->
+                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all text-center">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-6 h-6 sm:w-7 sm:h-7 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm sm:text-base">電話訂購</span>
                         </button>
-                        <button onclick="fetchAdminData('list')" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all">
-                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="phone-call" class="w-8 h-8 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-xl">實戰訂購清單</span>
+                        
+                        <!-- 2. 發餐核銷 -->
+                        <button onclick="fetchAdminData('dashboard')" class="bg-white border border-slate-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all text-center">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="users" class="w-6 h-6 sm:w-7 sm:h-7 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm sm:text-base">發餐核銷</span>
                         </button>
-                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-3 hover:bg-slate-50 active:scale-95 transition-all col-span-2">
-                            <div class="w-16 h-16 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-8 h-8 theme-text"></i></div>
-                            <span class="font-bold text-slate-700 text-xl">基地系統設定</span>
+
+                        <!-- 3. 基地設定 -->
+                        <button onclick="renderAdminSettings()" class="bg-white border border-slate-200 p-3 sm:p-4 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all text-center">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 theme-light rounded-full flex items-center justify-center"><i data-lucide="settings" class="w-6 h-6 sm:w-7 sm:h-7 theme-text"></i></div>
+                            <span class="font-bold text-slate-700 text-sm sm:text-base">基地設定</span>
                         </button>
                     </div>
                 </div>`;
@@ -1140,6 +1178,7 @@
                         <div class="space-y-3">`;
 
                     user.orders.forEach(order => {
+                        const safeSpec = (order['規格']||order['訂購內容']||'').replace(/'/g, "\\'");
                         contentHtml += `
                             <div class="order-item-container flex justify-between items-start p-4 bg-slate-50 rounded-2xl relative transition-all gap-4">
                                 <div class="flex-1 min-w-0">
@@ -1152,7 +1191,7 @@
                                     
                                     <!-- 修改按鈕區塊 -->
                                     <div class="flex gap-2">
-                                        <button onclick="openEditOrderModal('${order['訂單編號']}', '${order['店家']}', '${order['品項']}', '${order['規格']||order['訂購內容']||''}', ${order['單價']}, ${order['數量']})" class="text-slate-400 hover:text-blue-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="修改訂單">
+                                        <button onclick="openEditOrderModal('${order['訂單編號']}', '${order['店家']}', '${order['品項']}', '${safeSpec}', ${order['單價']}, ${order['數量']})" class="text-slate-400 hover:text-blue-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="修改訂單">
                                             <i data-lucide="edit-3" class="w-5 h-5"></i>
                                         </button>
                                         <button onclick="queueDeleteOrder('${order['訂單編號']}', this)" class="text-slate-400 hover:text-red-500 bg-white shadow-sm p-2.5 rounded-full border border-slate-200 transition-colors active:scale-90" title="標記刪除此訂單">
